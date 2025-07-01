@@ -15,9 +15,12 @@ int main(int argc, char **argv)
     Settings settings;
     settings.parse_command_line(argc, argv);
 
+    // Load parameters library from known_parameters.dat in the include directory.
+    InitializeParameterLibrary();
+
     // Initialize secondary variables.
     Frcmod_File frcmod(settings.frcmodfile);
-    
+
     // read input file (PDB)
     settings.Output("Reading PDB...");
     Molecule mol(settings);

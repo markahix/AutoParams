@@ -1,5 +1,6 @@
 #include "parameters.h"
 
+std::string THIS_FILE_LOCATION=__FILE__;
 
 std::map <std::string, std::string> BASIC_ATOM_TYPES={
 //sp carbons
@@ -590,6 +591,11 @@ std::vector <std::string> vdw_library_keys={
 {"CM"},{"CQ"},{"CR"},{"CZ"},{"N "},{"N3"},{"N*"},{"N2"},{"NA"},{"NB"},
 {"NC"},{"NT"},{"NY"},{"S "},{"SG"},{"SH"},{"SO"},{"SS"},{"P "},{"MG"},
 {"C0"},{"F "},{"Cl"},{"Br"},{"I "},{"N1"},};
+
+void InitializeParameterLibrary()
+{
+    std::cout << THIS_FILE_LOCATION << std::endl;
+}
 
 std::string FindMissingMass(std::string atom_name)
 {

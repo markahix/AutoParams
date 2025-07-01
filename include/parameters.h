@@ -18,12 +18,11 @@
 // std::map <std::string, std::string> vdw_library;
 // std::vector <std::string> vdw_library_keys;
 
-
 std::string FindMissingMass(std::string atom_name);
 std::string FindMissingBond(std::string a1, std::string a2);
 std::string FindMissingAngle(std::string a1, std::string a2, std::string a3);
 std::string FindMissingDihedral(std::string a1, std::string a2, std::string a3, std::string a4);
 std::string FindMissingTorsion(std::string a1, std::string a2, std::string a3, std::string a4);
 std::string FindMissingNonbonded(std::string a1);
-
+void InitializeParameterLibrary();
 #endif
