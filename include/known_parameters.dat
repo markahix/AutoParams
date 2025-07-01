@@ -1,0 +1,228 @@
+%BASIC_ATOM_TYPES
+//sp carbons
+CZ    C_sp 
+CY    C_sp 
+cg    C_sp 
+ch    C_sp 
+c1    C_sp
+
+//sp2 carbons
+C4    C_sp2 
+C5    C_sp2 
+C     C_sp2 
+CA    C_sp2 
+CB    C_sp2
+CC    C_sp2 
+CD    C_sp2 
+CK    C_sp2 
+CP    C_sp2 
+CM    C_sp2
+CS    C_sp2 
+CN    C_sp2 
+CQ    C_sp2 
+CR    C_sp2 
+CV    C_sp2
+CW    C_sp2 
+C*    C_sp2 
+CI    C_sp2 
+Ck    C_sp2 
+Cj    C_sp2
+cC    C_sp2 
+cB    C_sp2 
+c     C_sp2 
+ce    C_sp2 
+cf    C_sp2
+ca    C_sp2
+
+//sp3 carbons
+CX    C_sp3 
+CT    C_sp3 
+cA    C_sp3 
+cD    C_sp3 
+cP    C_sp3 
+cR    C_sp3 
+Cg    C_sp3 
+Cy    C_sp3 
+2C    C_sp3 
+3C    C_sp3 
+Cp    C_sp3 
+cx    C_sp3 
+cy    C_sp3 
+CG    C_sp3
+
+//sp nitrogens
+NY    N_sp 
+n1    N_sp 
+no    N_sp
+
+//sp2 nitrogens
+N     N_sp2 
+NA    N_sp2 
+NB    N_sp2 
+NC    N_sp2 
+N2    N_sp2
+N*    N_sp2 
+nN    N_sp2 
+Ng    N_sp2 
+nb    N_sp2 
+nc    N_sp2
+nd    N_sp2 
+n     N_sp2 
+ni    N_sp2 
+nj    N_sp2 
+ne    N_sp2
+nf    N_sp2 
+n2    N_sp2 
+
+//sp3 nitrogens
+N3    N_sp3 
+NT    N_sp3 
+nA    N_sp3 
+n4    N_sp3 
+nk    N_sp3
+nl    N_sp3
+np    N_sp3 
+n3    N_sp3 
+nq    N_sp3 
+nh    N_sp3
+nm    N_sp3 
+nn    N_sp3 
+na    N_sp3 
+
+//single-bond oxygens
+OW    O_sb 
+OH    O_sb 
+OS    O_sb 
+oH    O_sb 
+oR    O_sb
+oS    O_sb 
+oT    O_sb 
+Os    O_sb 
+Oy    O_sb 
+Oh    O_sb
+ow    O_sb 
+oh    O_sb 
+os    O_sb 
+oq    O_sb 
+
+//double-bond oxygens
+OP    O_db 
+O2    O_db 
+O     O_db 
+oC    O_db 
+oO    O_db
+oP    O_db 
+o     O_db 
+
+//hydrogens
+HW    H 
+H4    H 
+H5    H 
+HA    H 
+HC    H 
+H1    H 
+H2    H 
+H3    H 
+HP    H 
+HZ    H 
+H     H 
+HO    H
+HS    H 
+hA    H 
+hL    H 
+hE    H 
+hS    H 
+hX    H
+hB    H 
+hN    H 
+hO    H 
+hR    H 
+Hc    H 
+Hp    H
+Ha    H 
+Ho    H 
+hc    H 
+h1    H 
+h2    H 
+h3    H
+hx    H 
+ha    H 
+h4    H 
+h5    H 
+hn    H 
+ho    H
+hs    H 
+hw    H 
+hp    H
+
+//halogens
+F     F 
+f     F
+Cl    Cl 
+cl    Cl 
+CL    Cl
+Br    Br 
+br    Br 
+BR    Br
+I     I 
+i     I
+
+//sulfur
+S     S 
+SH    S 
+SO    S 
+SS    S 
+Sm    S 
+SF    S
+S*    S 
+s     S 
+s2    S 
+s4    S 
+s6    S 
+sh    S
+ss    S 
+sp    S 
+sq    S 
+sx    S 
+sy    S 
+SG    S
+
+//phosphorus
+P     P 
+pA    P 
+p2    P 
+p3    P 
+p4    P 
+p5    P
+pb    P 
+pc    P 
+pd    P 
+pe    P 
+pf    P 
+px    P
+py    P
+
+//lone pairs
+EP    EP
+
+%ATOMIC_MASSES
+
+%BOND_TYPES
+
+%ANGLE_TYPES
+
+%DIHEDRAL_TYPES
+
+%TORSION_TYPES
+
+%NONBONDED_TYPES
+
+%DEFAULT_BOND_TYPES
+
+%DEFAULT_ANGLE_TYPES
+
+%DEFAULT_DIHEDRAL_TYPES
+
+%DEFAULT_TORSION_TYPES
+
+%DEFAULT_NONBONDED_TYPES
