@@ -57,15 +57,45 @@ Molecule::Molecule(Settings settings)
     std::set<std::string> s(residue_name_set.begin(), residue_name_set.end());
     if (s.size() != 1)
     {
-        for (Atom atom : atoms)
+        for (Atom &atom : atoms)
         {
             atom.residue_name = "LIG";
         }
     }
+
 }
 
 Molecule::~Molecule()
 {
+}
+
+void Molecule::Validate_Mol()
+{
+    for (Atom at : atoms)
+    {
+        std::cout << at.print_PDB_line();
+    }
+    std::cout << std::endl;
+}
+void Molecule::SetRESPChargeOfAtom(int atom_number, double resp_value)
+{
+    for (Atom &atom : atoms)
+    {
+        if (atom.atom_number == atom_number)
+        {
+            atom.set_resp_charge(resp_value);
+        }
+    }
+}
+double Molecule::GetRESPChargeOfAtom(int atom_number)
+{
+    for (Atom &atom : atoms)
+    {
+        if (atom.atom_number == atom_number)
+        {
+            return atom.resp_charge;
+        }
+    }
 }
 
 void Molecule::Write_PDB(std::string job_dir,std::string inputfile)
@@ -85,16 +115,18 @@ void Molecule::move_to_COM()
     double com_x = 0.0;
     double com_y = 0.0;
     double com_z = 0.0;
+    // calculate vector to origin
     for (Atom atom : atoms)
     {
-        com_x += atom.xx * atom.mass;
-        com_y += atom.yy * atom.mass;
-        com_z += atom.zz * atom.mass;
+        com_x += atom.xx;
+        com_y += atom.yy;
+        com_z += atom.zz;
     }
     com_x /= n_atoms;
     com_y /= n_atoms;
     com_z /= n_atoms;
-    for (Atom atom : atoms)
+    //move atoms by vector to origin @ center of molecule.
+    for (Atom &atom : atoms)
     {
         atom.xx -= com_x;
         atom.yy -= com_y;

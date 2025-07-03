@@ -22,7 +22,7 @@ void write_TC_resp_input(Settings settings, Molecule mol)
         outfile << "END\n";
         outfile.close();
     }
-    std::vector<std::string> tmp ={"coordinates", "charge", "spinmult", "basis", "method", "convthre", "threall", "precision", "maxit", "scf", "gpus", "gpumem", "scrdir","run", "resp"};
+    std::vector<std::string> tmp = {"coordinates", "charge", "spinmult", "basis", "method", "convthre", "threall", "precision", "maxit", "scf", "gpus", "gpumem", "scrdir","run", "resp"};
     std::map<std::string,std::string> tc_keywords={  
         {"coordinates",settings.inputfile},
         {"charge",std::to_string(settings.mol_charge)},
@@ -39,9 +39,8 @@ void write_TC_resp_input(Settings settings, Molecule mol)
         {"scrdir","scr/"},
         {"run","energy"},
         {"resp","yes"}};
+
     //Write the TeraChem input to calculate resp charges.
-    
-    
     std::ofstream outfile;
     outfile.open(settings.job_dir + "/resp.in",std::ios::out);
     for (std::string key : tmp)
@@ -51,13 +50,6 @@ void write_TC_resp_input(Settings settings, Molecule mol)
         buffer << std::setw(20) << std::right << tc_keywords[key] << std::endl;
         outfile << buffer.str();
     }
-    // for ( int i =0; i < tmp.size(); i++ )
-    // {
-    //     buffer.str("");
-    //     buffer << std::setw(20) << std::left << tmp[i];
-    //     buffer << std::setw(20) << std::right << tc_keywords[tmp[i]] << std::endl;
-    //     outfile << buffer.str();
-    // } 
     outfile.close();
 }
 
@@ -94,7 +86,8 @@ void parse_TC_resp_output(Molecule &mol,Settings settings)
     std::ifstream respfile(settings.job_dir + "/resp.out",std::ios::in);
     std::string line;
     std::stringstream buffer;
-    std::string atom,x,y,z,charge;
+    std::string atom;
+    double x,y,z,charge;
 
     if ( !respfile.is_open())
     {
@@ -111,7 +104,7 @@ void parse_TC_resp_output(Molecule &mol,Settings settings)
             break;
         }
     }
-    int atom_count=0;
+    int atom_count=1;
     while (getline(respfile,line))
     {
         if (line.find("------") != std::string::npos)
@@ -122,7 +115,7 @@ void parse_TC_resp_output(Molecule &mol,Settings settings)
         buffer >> atom >> x >> y >> z >> charge;
         buffer.flush();
         buffer.str("");
-        mol.atoms[atom_count].set_resp_charge(stof(charge));
+        mol.SetRESPChargeOfAtom(atom_count,charge);
         atom_count++;
     }
     return;
@@ -133,21 +126,128 @@ void Generate_Mol2_File(Settings settings)
     std::stringstream buffer;
     std::string curr_path = fs::current_path();
     fs::current_path(settings.job_dir);
-    
+    if (fs::exists("../capped.pdb"))
+    {
+        buffer.str("");
+        buffer << "cp ../capped.pdb " << settings.inputfile;
+        silent_shell(buffer.str().c_str());
+    }
     // run antechamber
     buffer.str("");
-    buffer << "antechamber -i " << settings.inputfile << " -fi pdb -at amber -o tmp.mol2 -fo mol2 ";
+    buffer << "antechamber -i " << settings.inputfile << " -fi pdb -at amber -o tmp.mol2 -fo mol2 -nc " << settings.mol_charge;
     if (!settings.USE_AM1BCC_CHARGES)
     {
         buffer << " -c bcc ";
     }
     buffer << " -pf y 1> antechamber.log 2> antechamber.err";
 
-    DeleteIfEmpty(settings.job_dir + "/antechamber.err");
     silent_shell(buffer.str().c_str());
+    DeleteIfEmpty(settings.job_dir + "/antechamber.err");
     Validate_Mol2_File(settings);
     fs::current_path(curr_path);
     return;
+}
+
+void RemoveDummyFromMol2(std::string mol2_file, std::string dummy_name)
+{
+    std::ifstream infile;
+    std::string line;
+    std::stringstream new_file_text;
+    int atom_number_to_change = 1000000;
+    for (int i = dummy_name.size(); i < 4; i++)
+    {
+        dummy_name += " ";
+    }
+    new_file_text.str("");
+    infile.open(mol2_file);
+
+    // Modify preamble section to reduce number of bonds and atoms in the system.
+    // Assumes dummy atoms are only singly-bonded to the rest of the molecule.  If not, that's insane.
+    getline(infile, line);
+    new_file_text << line << std::endl;
+    getline(infile, line);
+    new_file_text << line << std::endl;
+    getline(infile, line);
+    int v1 = stoi(line.substr(0,5)) - 1;
+    int v2 = stoi(line.substr(5,6)) - 1;
+    new_file_text << std::setw(5) << std::right << v1;
+    new_file_text << std::setw(6) << std::right << v2;
+    new_file_text << line.substr(11,line.size()-11) << std::endl;
+
+    while (getline(infile, line))
+    {   
+        new_file_text << line << std::endl;
+        if (line.find("@<TRIPOS>ATOM") != std::string::npos)
+        {
+            break;
+        }
+    }
+
+    while (getline(infile, line))
+    {
+        if (line.find("@<TRIPOS>BOND") != std::string::npos)
+        {
+            new_file_text << line << std::endl;
+            break;
+        }
+        if (line.substr(8,4) == dummy_name)
+        {
+            atom_number_to_change = stoi(line.substr(0,8));
+            continue;
+        }
+        int atom_num = stoi(line.substr(0,8));
+        if (atom_num > atom_number_to_change)
+        {
+            new_file_text << std::setw(7) << std::right << atom_num-1 << line.substr(7,line.size()-7) << std::endl;
+        }
+        else
+        {
+            new_file_text << line << std::endl;
+        }
+    }
+    int bond_num = 1;
+    while (getline(infile, line))
+    {
+        if (line.find("@<TRIPOS>SUBSTRUCTURE") != std::string::npos) 
+        {
+            new_file_text << line << std::endl;
+            break;
+        }
+        // "     1     1     2 1"
+        int atom1 = stoi(line.substr(6,6));
+        int atom2 = stoi(line.substr(12,6));
+        int obond = stoi(line.substr(18,2));
+        if (atom1 == atom_number_to_change)
+        {
+            continue;
+        }
+        if (atom2 == atom_number_to_change)
+        {
+            continue;
+        }
+        if (atom1 > atom_number_to_change)
+        {
+            atom1--;
+        }
+        if (atom2 > atom_number_to_change)
+        {
+            atom2--;
+        }
+        new_file_text << std::setw(6) << std::right << bond_num;
+        new_file_text << std::setw(6) << std::right << atom1;
+        new_file_text << std::setw(6) << std::right << atom2;
+        new_file_text << std::setw(2) << std::right << obond << std::endl;
+        bond_num++;
+    }
+    while (getline(infile, line))
+    {   
+        new_file_text << line << std::endl;
+    }
+    infile.close();
+    std::ofstream ofile;
+    ofile.open(mol2_file,std::ios::out);
+    ofile << new_file_text.str();
+    ofile.close();
 }
 
 void Validate_Mol2_File(Settings settings)
@@ -157,9 +257,14 @@ void Validate_Mol2_File(Settings settings)
     std::ofstream new_mol2;
     std::string line;
     std::stringstream buffer;
-    int atom_count=0;
     std::string curr_path = fs::current_path();
     fs::current_path(settings.job_dir);
+    //Clear dummy atoms from mol2 while maintaining original atomtyping.
+    for (unsigned int i = 0; i < settings.dummy_atom_names.size(); i ++)
+    {   
+        RemoveDummyFromMol2("tmp.mol2", settings.dummy_atom_names[i]);
+    }
+    
     tmp_mol2.open("tmp.mol2",std::ios::in);
     new_mol2.open("tmp2.mol2",std::ios::out);
     if (!tmp_mol2.is_open())
@@ -172,6 +277,7 @@ void Validate_Mol2_File(Settings settings)
         settings.Error("Unable to write new mol2.");
         return;
     }
+
     // Starting line:  @<TRIPOS>ATOM
     while (getline(tmp_mol2,line))
     {
@@ -216,7 +322,7 @@ void Validate_Mol2_File(Settings settings)
         }
         
     }
-  
+
     while (getline(tmp_mol2,line))
     {
         new_mol2 << line << std::endl;
@@ -234,7 +340,6 @@ void Add_Charges_To_Mol2(Settings settings, Molecule &mol)
     std::ofstream new_mol2;
     std::string line;
     std::stringstream buffer;
-    int atom_count=0;
     std::string curr_path = fs::current_path();
     fs::current_path(settings.job_dir);
     tmp_mol2.open("tmp.mol2",std::ios::in);
@@ -250,23 +355,38 @@ void Add_Charges_To_Mol2(Settings settings, Molecule &mol)
         return;
     }
 
+    //Copy everything before the atoms themselves.
     while (getline(tmp_mol2,line))
-    {   
-        int location = line.find("0.000000");
-        if (location != std::string::npos)
+    {
+        new_mol2 << line << std::endl;
+        if (line.find("@<TRIPOS>ATOM") != std::string::npos)
         {
-            buffer.str("");
-            buffer << line.substr(0,location) << std::fixed << std::right << mol.atoms[atom_count].resp_charge;
-            mol.atoms[atom_count].atom_type = line.substr(50,2);
-            new_mol2 << buffer.str() << std::endl;
-            atom_count++;
+            break;
         }
-        else
+    }
+
+    //now we're in the atoms, change the charges.
+    int atom_count=1;
+    while (getline(tmp_mol2,line))
+    {
+        if (line.find("@<TRIPOS>BOND") != std::string::npos)
         {
             new_mol2 << line << std::endl;
+            break;
         }
-        
+        //"      1 N1          11.3850    68.4460   -10.8960 NT         1 GYS      -0.871042"
+        //"      1 N1          11.3850    68.4460   -10.8960 NT         1 GYS      " (72 characters long before charge begins (including - signs))
+        buffer.str("");
+        buffer << line.substr(0,72) << std::right << std::setw(9) << std::fixed << std::setprecision(6) << mol.GetRESPChargeOfAtom(atom_count);
+        new_mol2 << buffer.str() << std::endl;
+        atom_count++;   
     }
+    // copy over bond information.
+    while (getline(tmp_mol2,line))
+    {
+        new_mol2 << line << std::endl;
+    }
+
     if ((mol.head_atom_name != "0") || (mol.tail_atom_name != "0"))
     {
         new_mol2 << "@<TRIPOS>HEADTAIL" << std::endl;
@@ -610,10 +730,10 @@ void Check_For_Missing_Parameters(Settings settings, Molecule &mol)
     return;
 }
 
-void Build_Frcmod(Frcmod_File &frcmod, Molecule mol, Settings settings)
+void Build_Frcmod(Frcmod_File &frcmod, Molecule mol, Settings settings, Parameters params)
 {
     // process molecule's missing masses
-    for (int i=0; i < mol.missing_masses.size(); i++)
+    for (unsigned int i=0; i < mol.missing_masses.size(); i++)
     {
         
         // use mass library
@@ -621,13 +741,13 @@ void Build_Frcmod(Frcmod_File &frcmod, Molecule mol, Settings settings)
     }
 
     // process molecule's missing bonds
-    for (int i=0; i < mol.missing_bonds.size(); i++)
+    for (unsigned int i=0; i < mol.missing_bonds.size(); i++)
     {
         // std::cout << mol.missing_bonds[i] << std::endl;
         std::string a1 = mol.missing_bonds[i].substr(0,2);
         std::string a2 = mol.missing_bonds[i].substr(3,2);
         // std::cout << "Atoms: " << a1 << " and " << a2 << "... searching" << std::endl;
-        std::string newbond = FindMissingBond(a1,a2);
+        std::string newbond = params.FindMissingBond(a1,a2);
         // std::cout << "got newbond: " << newbond << std::endl;
         frcmod.Add_Bond(newbond);
         
@@ -636,7 +756,7 @@ void Build_Frcmod(Frcmod_File &frcmod, Molecule mol, Settings settings)
     }
 
     // process molecule's missing angles
-    for (int i=0; i < mol.missing_angles.size(); i++)
+    for (unsigned int i=0; i < mol.missing_angles.size(); i++)
     {
         // std::cout << mol.missing_angles[i] << std::endl;
         std::vector<std::string> atom_set = string_split(mol.missing_angles[i],'-');
@@ -657,7 +777,7 @@ void Build_Frcmod(Frcmod_File &frcmod, Molecule mol, Settings settings)
             a3 = a3+" ";
         }
         // std::cout << "Atoms: " << a1 << ", " << a2 << ", and " << a3 << "... searching" << std::endl;
-        std::string newangle = FindMissingAngle(a1,a2,a3);
+        std::string newangle = params.FindMissingAngle(a1,a2,a3);
         // std::cout << "got newangle: " << newangle << std::endl;
         frcmod.Add_Angle(newangle);
         //use angle library first
@@ -665,7 +785,7 @@ void Build_Frcmod(Frcmod_File &frcmod, Molecule mol, Settings settings)
     }
 
     // process molecule's missing dihedrals
-    for (int i=0; i < mol.missing_dihedrals.size(); i++)
+    for (unsigned int i=0; i < mol.missing_dihedrals.size(); i++)
     {
         //use dihedrals library first
         // std::cout << mol.missing_dihedrals[i] << std::endl;
@@ -692,28 +812,27 @@ void Build_Frcmod(Frcmod_File &frcmod, Molecule mol, Settings settings)
             a4 = a4+" ";
         }
         // std::cout << "Atoms: " << a1 << ", " << a2 << ", " << a3 << ", and " << a4 << "... searching" << std::endl;
-        std::string newdihedral = FindMissingDihedral(a1,a2,a3,a4);
+        std::string newdihedral = params.FindMissingDihedral(a1,a2,a3,a4);
         // std::cout << "got newdihedral: " << newdihedral << std::endl;
         frcmod.Add_Dihedral(newdihedral);
         //if not able to find exact match, use DIHEDRAL_SET_DICT against BASIC_ATOM_TYPES string pair.
     }
 
     // process molecule's missing torsions
-    for (int i=0; i < mol.missing_torsions.size(); i++)
+    for (unsigned int i=0; i < mol.missing_torsions.size(); i++)
     {
         //use dihedrals library first
         //if not able to find exact match, use DIHEDRAL_SET_DICT against BASIC_ATOM_TYPES string pair.
     }
 
     // process molecule's missing vdW params
-    for (int i=0; i < mol.missing_vdw_params.size(); i++)
+    for (unsigned int i=0; i < mol.missing_vdw_params.size(); i++)
     {
         //use nonbonded library first
-        frcmod.Add_vdW(FindMissingNonbonded(mol.missing_vdw_params[i]));
-        frcmod.Add_Mass(FindMissingMass(mol.missing_vdw_params[i]));
+        frcmod.Add_vdW(params.FindMissingNonbonded(mol.missing_vdw_params[i]));
+        frcmod.Add_Mass(params.FindMissingMass(mol.missing_vdw_params[i]));
         //if not able to find exact match, create new nonbonded term.
     }
-
 
     // write frcmod file
     frcmod.Write_Frcmod_File(settings);

@@ -71,6 +71,10 @@ public:
     void FindDihedrals();
     void FindTorsions();
     void FindRings();
+    void Validate_Mol();
+    void SetRESPChargeOfAtom(int atom_number, double resp_value);
+    double GetRESPChargeOfAtom(int atom_number);
+
 };
 
 

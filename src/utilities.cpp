@@ -83,6 +83,7 @@ void DeleteIfEmpty(std::string filepath)
     3. std::string substring_replace(std::string original, std::string target, std::string replacement)
     4. std::string FormattedTimeStamp()
 */
+
 std::string trim_whitespace(const std::string& str, const std::string& whitespace)
 {
     const auto strBegin = str.find_first_not_of(whitespace);
@@ -94,6 +95,7 @@ std::string trim_whitespace(const std::string& str, const std::string& whitespac
 
     return str.substr(strBegin, strRange);
 }
+
 std::vector <std::string> string_split(std::string source, char delimiter)
 {
     std::stringstream dummy;

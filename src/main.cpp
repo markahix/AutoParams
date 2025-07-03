@@ -16,7 +16,8 @@ int main(int argc, char **argv)
     settings.parse_command_line(argc, argv);
 
     // Load parameters library from known_parameters.dat in the include directory.
-    InitializeParameterLibrary();
+    Parameters params;
+    params.InitializeParameterLibrary();
 
     // Initialize secondary variables.
     Frcmod_File frcmod(settings.frcmodfile);
@@ -30,7 +31,6 @@ int main(int argc, char **argv)
     // move molecule to center of mass.
     mol.move_to_COM();
     mol.Write_PDB(settings.job_dir, settings.inputfile);
-
     // check total charge/spin combination
     if (mol.SpinChargeValidate())
     {
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
     }
         
     if (!settings.USE_AM1BCC_CHARGES)
-    {// calculate RESP charges
+    {
     // calculate RESP charges, apply results to atoms in molecule.
     write_TC_resp_input(settings,mol);
     buffer.str("");
@@ -129,7 +129,8 @@ int main(int argc, char **argv)
     // Generate mol2 file
     Generate_Mol2_File(settings);
     if (!settings.USE_AM1BCC_CHARGES)
-    {
+    {   
+        std::cout << "Adding charges to mol2." << std::endl;
         Add_Charges_To_Mol2(settings, mol);
     }
 
@@ -145,7 +146,7 @@ int main(int argc, char **argv)
 
     // Generate frcmod file
     settings.Output("Generating frcmod file.");
-    Build_Frcmod(frcmod, mol, settings);
+    Build_Frcmod(frcmod, mol, settings, params);
 
     // Test mol2/frcmod file combination in tleap
     Check_For_Missing_Parameters(settings, mol);
@@ -155,7 +156,7 @@ int main(int argc, char **argv)
     if (!CheckFileExists(restart) || !CheckFileExists(prmtop))
     {
         settings.Output("Attempting to regenerate frcmod file for new missing parameters.");
-        Build_Frcmod(frcmod, mol, settings);
+        Build_Frcmod(frcmod, mol, settings, params);
         // Test mol2/frcmod file combination in tleap
         Check_For_Missing_Parameters(settings, mol);
     }
