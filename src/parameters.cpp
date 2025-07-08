@@ -390,7 +390,7 @@ std::string Parameters::Retrieve_Dihedral(std::string key, std::string base_key)
 {
         std::stringstream buffer;
         buffer.str("");
-        for (int i=0; i < dihedral_library[key].size();i++)
+        for (unsigned int i=0; i < dihedral_library[key].size();i++)
         {
             buffer << base_key << dihedral_library[key][i] << std::endl;
         }
@@ -498,6 +498,19 @@ std::string Parameters::FindMissingDihedral(std::string a1, std::string a2, std:
         return Retrieve_Dihedral(dihedral,base_key);
     }
 
+    dihedral = "X -" + base2 + "-" + base3 + "-X ";
+    dihedral = trim_whitespace(dihedral);
+    if (dihedral_library.find(dihedral) != dihedral_library.end())
+    {
+        return Retrieve_Dihedral(dihedral,base_key);
+    }
+
+    dihedral = "X -" + base3 + "-" + base2 + "-X ";
+    dihedral = trim_whitespace(dihedral);
+    if (dihedral_library.find(dihedral) != dihedral_library.end())
+    {
+        return Retrieve_Dihedral(dihedral,base_key);
+    }
 
     buffer.str("");
     buffer << base_key << " MISSING INFORMATION " << std::endl;
