@@ -245,9 +245,15 @@ void RemoveDummyFromMol2(std::string mol2_file, std::string dummy_name)
     }
     infile.close();
     std::ofstream ofile;
-    ofile.open(mol2_file,std::ios::out);
+    ofile.open("dummies.mol2",std::ios::out);
     ofile << new_file_text.str();
     ofile.close();
+
+    std::stringstream buffer;
+    buffer.str("");
+    buffer << "mv dummies.mol2 " << mol2_file;
+    silent_shell(buffer.str().c_str());
+
 }
 
 void Validate_Mol2_File(Settings settings)
