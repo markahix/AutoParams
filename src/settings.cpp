@@ -108,6 +108,7 @@ void Settings::parse_command_line(int argc,char **argv)
     head_atom_name = "0";
     tail_atom_name = "0";
     dummy_atom_names = {};
+    tc_keys = {};
 
 
     /*
@@ -186,6 +187,14 @@ void Settings::parse_command_line(int argc,char **argv)
         {
             USE_AM1BCC_CHARGES = true;
         }
+        if ((std::string)argv[i] == "--tckw" )
+        {
+            std::string key = argv[i+1];
+            std::string val = argv[i+2];
+            tc_keys[key] = val;
+        }
+
+
                 
         i++;
     }

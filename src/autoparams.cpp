@@ -22,7 +22,6 @@ void write_TC_resp_input(Settings settings, Molecule mol)
         outfile << "END\n";
         outfile.close();
     }
-    std::vector<std::string> tmp = {"coordinates", "charge", "spinmult", "basis", "method", "convthre", "threall", "precision", "maxit", "scf", "gpus", "gpumem", "scrdir","run", "resp"};
     std::map<std::string,std::string> tc_keywords={  
         {"coordinates",settings.inputfile},
         {"charge",std::to_string(settings.mol_charge)},
@@ -39,15 +38,23 @@ void write_TC_resp_input(Settings settings, Molecule mol)
         {"scrdir","scr/"},
         {"run","energy"},
         {"resp","yes"}};
+    for(std::map<std::string,std::string>::iterator iter = settings.tc_keys.begin(); iter != settings.tc_keys.end(); ++iter)
+    {
+        std::string k =  iter->first;
+        std::string v = iter->second;
+        tc_keywords[k] = v;
+    }
 
     //Write the TeraChem input to calculate resp charges.
     std::ofstream outfile;
     outfile.open(settings.job_dir + "/resp.in",std::ios::out);
-    for (std::string key : tmp)
+    for(std::map<std::string,std::string>::iterator iter = tc_keywords.begin(); iter != tc_keywords.end(); ++iter)
     {
+        std::string k =  iter->first;
+        std::string v = iter->second;
         buffer.str("");
-        buffer << std::setw(20) << std::left << key;
-        buffer << std::setw(20) << std::right << tc_keywords[key] << std::endl;
+        buffer << std::setw(20) << std::left << k;
+        buffer << std::setw(20) << std::right << v << std::endl;
         outfile << buffer.str();
     }
     outfile.close();

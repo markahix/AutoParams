@@ -35,6 +35,7 @@ class Settings
         std::string head_atom_name;
         std::string tail_atom_name;
         std::vector <std::string> dummy_atom_names;
+        std::map <std::string,std::string> tc_keys;
 
         // Functions
         void CheckPrograms();
