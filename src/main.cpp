@@ -31,6 +31,7 @@ int main(int argc, char **argv)
     // move molecule to center of mass.
     mol.move_to_COM();
     mol.Write_PDB(settings.job_dir, settings.inputfile);
+    
     // check total charge/spin combination
     if (mol.SpinChargeValidate())
     {
@@ -126,13 +127,18 @@ int main(int argc, char **argv)
     // ************************* Here's where I can put in my molecule atom-typer code...
     AtomTyping(mol);
     
-    // Generate mol2 file
-    Generate_Mol2_File(settings);
-    if (!settings.USE_AM1BCC_CHARGES)
-    {   
-        std::cout << "Adding charges to mol2." << std::endl;
-        Add_Charges_To_Mol2(settings, mol);
+    for (Atom atom : mol.atoms)
+    {
+        std::cout << atom.atom_name << " : " << atom.atom_type << " : " << atom.resp_charge << std::endl;
     }
+    // Generate mol2 file
+    BuildMol2File(settings, mol);
+    // Generate_Mol2_File(settings);
+    // if (!settings.USE_AM1BCC_CHARGES)
+    // {   
+    //     std::cout << "Adding charges to mol2." << std::endl;
+    //     Add_Charges_To_Mol2(settings, mol);
+    // }
 
     // check for missing parameters with tleap, parse tleap error file.
     settings.Output("\nIdentifying missing parameters...\n#########################################\n");

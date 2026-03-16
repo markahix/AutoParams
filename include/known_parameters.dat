@@ -56,6 +56,12 @@ cx    C_sp3
 cy    C_sp3 
 CG    C_sp3
 
+//sp2 borons
+B     B_sp2
+
+//sp3 borons
+B3    B_sp3
+
 //sp nitrogens
 NY    N_sp 
 n1    N_sp 
@@ -212,6 +218,8 @@ py    P
 EP    EP
 
 %ATOMIC_MASSES
+B  10.81
+B3 10.81
 C  12.01         0.616
 CA 12.01         0.360
 CB 12.01         0.360
@@ -280,6 +288,11 @@ SG 32.06         2.900
 N1 14.01         0.530
 
 %BOND_TYPES
+B -O   450.00     1.510
+OH-B   450.00     1.510
+B -C2  340.00     1.630
+B -CA  340.00     1.630
+B -CT  326.80     1.510
 C -C*  447.00   1.419
 C -CD  469.00   1.400
 C -CK  450.00   1.400
@@ -781,6 +794,8 @@ X -CB-S -X     2    4.00        180.000           2.000
 %TORSION_TYPES
 
 %NONBONDED_TYPES
+B3          1.9800  0.0340
+B           1.9800  0.0340
 H           0.6000  0.0157  
 HO          0.0000  0.0000  
 HS          0.6000  0.0157  
@@ -840,6 +855,14 @@ I           2.35    0.40
 N1          1.8240  0.1700
 
 %DEFAULT_BOND_TYPES
+B_sp2-O_db    450.00   1.510
+O_sb-B_sp2    450.00   1.510
+B_sp2-C_sp2   340.00   1.630
+B_sp2-C_sp3   326.80   1.510
+B_sp3-O_db    450.00   1.510
+O_sb-B_sp3    450.00   1.510
+B_sp3-C_sp2   340.00   1.630
+B_sp3-C_sp3   326.80   1.510
 H-O_sb        553.00   0.970
 C_sp2-H       367.00   1.120
 C_sp3-H       340.00   1.120
@@ -880,12 +903,31 @@ EP-N_sp2      600.00   0.200
 EP-S          600.00   0.700
 
 %DEFAULT_ANGLE_TYPES
+//sp2 boron centers
+
+
+//sp3 boron centers
+O_db-B_sp3-O_db        90.000     109.50
+O_db_sb-B_sp3-O_db     90.000     109.50
+O_db_sb-B_sp3-O_db_sb  90.000     109.50
+O_db_sb-B_sp3-C_sp2    60.000     109.50
+O_db_sb-B_sp3-C_sp2    60.000     109.50
+O_db_sb-B_sp3-C_sp3    60.000     109.50
+O_db-B_sp3-C_sp2       60.000     109.50
+
+
 //sp carbon centers
 C_sp3-C_sp-N_sp        80.000     180.000
 C_sp-C_sp-C_sp3        80.000     180.000
 C_sp-C_sp-H            50.000     180.000
 
 //sp2 carbon centers
+B_sp3-C_sp2-H          50.000     109.500
+B_sp2-C_sp2-H          50.000     109.500
+B_sp3-C_sp2-C_sp2     127.380     120.970
+B_sp2-C_sp2-C_sp2     127.380     120.970
+B_sp3-C_sp2-C_sp2     127.380     120.970
+B_sp2-C_sp2-C_sp2     127.380     120.970
 C_sp2-C_sp2-O_db       80.000     124.900
 C_sp2-C_sp2-O_sb       75.000     121.700
 C_sp2-C_sp2-C_sp2      63.000     118.900
@@ -911,6 +953,16 @@ C_sp2-C_sp2-I          70.000     118.800
 H-C_sp2-H              35.000     117.100
 
 //sp3 carbon centers
+B_sp3-C_sp3-H          50.000     109.500
+B_sp2-C_sp3-H          50.000     109.500
+B_sp3-C_sp3-H          50.000     109.500
+B_sp2-C_sp3-H          50.000     109.500
+B_sp3-C_sp3-C_sp3      50.000     109.500
+B_sp2-C_sp3-C_sp3      50.000     109.500
+B_sp3-C_sp3-N_sp3      50.000     109.310
+B_sp2-C_sp3-N_sp3      50.000     109.310
+B_sp2-C_sp3-C_sp2      127.38     111.900
+B_sp3-C_sp3-C_sp2      127.38     111.900
 H-C_sp3-H              35.000     109.500
 H-C_sp3-N_sp2          50.000     109.500
 H-C_sp3-O_sb           50.000     109.500
@@ -959,6 +1011,12 @@ C_sp3-N_sp3-EP        150.000     109.500
 EP-N_sp3-H            150.000     109.500
 
 //single bond oxygen centers
+C_sp3-O_sb-B_sp3       60.000     109.500
+C_sp3-O_sb-B_sp2       60.000     109.500
+B_sp3-O_sb-H           35.000     109.500
+B_sp2-O_sb-H           35.000     109.500
+B_sp3-O_sb-C_sp3       90.000     109.500
+B_sp2-O_sb-C_sp3       90.000     109.500
 H-O_sb-H              100.000     104.500
 C_sp2-O_sb-H           51.700     111.500
 C_sp3-O_sb-H           55.000     108.500
@@ -1271,6 +1329,37 @@ C_sp3-C_sp-C_sp-H            1    0.00          0.0             1.
 X -C_sp-C_sp-H               1    0.00          0.0             1.
 C_sp3-C_sp-C_sp-X            1    0.00          0.0             1.
 X -C_sp-C_sp-X               1    0.00          0.0             1.
+O_sb-B_sp3-C_sp2-C_sp2       1   15.7206      170.366        −1.001
+B_sp3-C_sp2-C_sp2-C_sp2      1    0.7000      180.000         2.000
+B_sp3-O_sb-C_sp3-C_sp3       1    3.4800      106.880         1.500
+B_sp3-O_sb-C_sp3-H           1    4.1053      256.511         2.000
+O_sb-B_sp3-O_sb-H            1    0.8361        0.000         3.000
+O_sb-B_sp3-C_sp2-H           1    2.5070      172.978         0.129
+O_sb-B_sp3-C_sp2-C_sp2       1   15.7206      170.366        −1.000
+O_sb-B_sp3-O_sb-C_sp3        1    0.8347        0.000         3.000
+H-O_sb-B_sp3-C_sp2           1    2.0509      112.044         5.000
+C_sp2-B_sp3-O_sb-C_sp3       1    2.3740      114.599        −0.197
+C_sp3-C_sp3-O_sb-B_sp3       1    3.4800      106.881         1.500
+H-O_sb-B_sp3-O_sb            1    0.8361        0.000         3.000
+H-O_sb-B_sp3-C_sp2           1    2.0509      112.044         5.000
+H-O_sb-B_sp3-C_sp2           1    2.0509      112.044         5.000
+O_sb-B_sp3-O_sb-H            1    0.8361        0.000         3.000
+O_sb-B_sp3-O_sb-H            1    0.8361        0.000         3.000
+O_sb-B_sp3-C_sp2-H           1    2.5070      172.978         0.129
+O_sb-B_sp3-C_sp3-H           1    2.5070      172.978         0.129
+O_sb-B_sp3-C_sp2-C_sp2       1   15.7206      170.366        −1.000
+O_sb-B_sp3-C_sp3-C_sp2       1   15.7205      170.366         0.000
+H-C_sp3-O_sb-B_sp3           1    4.1053      256.511         2.000
+C_sp3-O_sb-B_sp3-O_sb        1    2.3743      114.599        −0.197
+C_sp3-O_sb-B_sp3-C_sp2       1    2.3743      114.599        −0.197
+H-C_sp3-O_sb-B_sp3           1    4.1053      256.511         2.000
+O_sb-B_sp3-C_sp3-n3          1   −2.2276        0.000         2.156
+C_sp3-O_sb-B_sp3-O_sb        1  −44.4201        0.000         1.251
+C_sp3-O_sb-B_sp3-C_sp3       1  −12.2011        0.000         2.000
+H-O_sb-B_sp3-C_sp3           1    8.0608        0.000        −0.101
+O_sb-B_sp3-C_sp3-H           1    0.5691        0.000         2.385
+O_sb-B_sp3-C_sp2-C_sp2       1   15.7206      170.366        −1.001
+C_sp3-O_sb-B_sp3-C_sp2       1    2.3743      114.599        −0.197
 
 %DEFAULT_TORSION_TYPES
 

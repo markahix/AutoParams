@@ -72,7 +72,7 @@ void Settings::SetUpLogFiles()
     errfile = fs::absolute("autoparams.0000.err");
     job_dir = fs::absolute("autoparams.0000/");
     
-    if (CheckFileExists(outfile) | CheckFileExists(errfile))
+    if (CheckFileExists(outfile) | CheckFileExists(errfile) | fs::exists(job_dir))
     {
         do
         {
@@ -215,7 +215,7 @@ void Settings::parse_command_line(int argc,char **argv)
         return;
     }
     mol2file = inputfile.substr(0,inputfile.find_last_of('.')) + ".mol2";
-    mol2file = job_dir + mol2file;
+    // mol2file = job_dir + mol2file;
     frcmodfile = job_dir + inputfile.substr(0,inputfile.find_last_of('.')) + ".frcmod";
 
     std::stringstream buffer;

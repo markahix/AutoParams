@@ -24,30 +24,66 @@ bool TCJobSuccess()
 
 void TeraChemOpt(Settings settings)
 {
+    std::map<std::string,std::string> tc_keywords={  
+        {"coordinates",settings.inputfile},
+        {"charge",std::to_string(settings.mol_charge)},
+        {"spinmult",std::to_string(settings.mol_spin)},
+        {"basis","6-31gss"},
+        {"method","b3lyp"},
+        {"convthre","1e-7"},
+        {"threall","1e-14"},
+        {"precision","mixed"},
+        {"maxit","200"},
+        {"scf","diis+a"},
+        {"gpus","1"},
+        {"gpumem","256"},
+        {"scrdir","scr/"},
+        {"run","energy"},
+        {"resp","yes"}};
+
+    for(std::map<std::string,std::string>::iterator iter = settings.tc_keys.begin(); iter != settings.tc_keys.end(); ++iter)
+    {
+        std::string k =  iter->first;
+        std::string v = iter->second;
+        tc_keywords[k] = v;
+        if (k == "run")
+        {
+            std::cout << "Attempted to change runtype from command line call.  Ignoring." << std::endl;
+        }
+    }
+    tc_keywords["run"] = "minimize";
+
     // Write TeraChem Optimizer input.
     std::stringstream buffer;
     buffer.str("");
-    buffer << "coordinates       " << settings.inputfile << std::endl;
-    buffer << "charge            " << settings.mol_charge << std::endl;
-    buffer << "spinmult          " << settings.mol_spin << std::endl;
-    buffer << "basis             6-31gss" << std::endl;
-    buffer << "method            b3lyp" << std::endl;
-    buffer << "convthre          1e-7" << std::endl;
-    buffer << "threall           1e-14" << std::endl;
-    buffer << "precision         mixed" << std::endl;
-    buffer << "maxit             200" << std::endl;
-    buffer << "scf               diis+a" << std::endl;
-    buffer << "gpus              1" << std::endl;
-    buffer << "gpumem            256" << std::endl;
-    buffer << "scrdir            scr/" << std::endl;
-    buffer << "run               minimize" << std::endl;
-    buffer << "new_minimizer     no" << std::endl;
-    buffer << "min_coordinates   cartesian" << std::endl;
-    buffer << ""<<std::endl;
-    buffer << ""<<std::endl;
-    buffer << ""<<std::endl;
-    buffer << ""<<std::endl;
-    buffer << ""<<std::endl;
+    for (std::map<std::string,std::string>::iterator iter = tc_keywords.begin(); iter != tc_keywords.end(); ++iter)
+    {
+        std::string k =  iter->first;
+        std::string v = iter->second;
+        buffer << k << '\t' << v <<::std::endl;
+    }
+    // buffer << "coordinates       " << settings.inputfile << std::endl;
+    // buffer << "charge            " << settings.mol_charge << std::endl;
+    // buffer << "spinmult          " << settings.mol_spin << std::endl;
+    // buffer << "basis             6-31gss" << std::endl;
+    // buffer << "method            b3lyp" << std::endl;
+    // buffer << "convthre          1e-7" << std::endl;
+    // buffer << "threall           1e-14" << std::endl;
+    // buffer << "precision         mixed" << std::endl;
+    // buffer << "maxit             200" << std::endl;
+    // buffer << "scf               diis+a" << std::endl;
+    // buffer << "gpus              1" << std::endl;
+    // buffer << "gpumem            256" << std::endl;
+    // buffer << "scrdir            scr/" << std::endl;
+    // buffer << "run               minimize" << std::endl;
+    // buffer << "new_minimizer     no" << std::endl;
+    // buffer << "min_coordinates   cartesian" << std::endl;
+
+    // buffer << ""<<std::endl;
+    // buffer << ""<<std::endl;
+    // buffer << ""<<std::endl;
+    // buffer << ""<<std::endl;
+    // buffer << ""<<std::endl;
     std::ofstream of("opt.in",std::ios::out);
     of << buffer.str();
     of.close();

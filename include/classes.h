@@ -33,6 +33,17 @@ class Atom
         std::string print_mol2_line();
 };
 
+class Bond
+{
+    public:
+        int index;
+        int atom1;
+        int atom2;
+        int order;
+        Bond(int idx, int at1, int at2, int ord);
+        ~Bond();
+};
+
 
 class Molecule
 {
@@ -46,6 +57,7 @@ public:
     std::string res_name;
     std::vector <Atom> atoms;
     std::vector <std::vector<int>> bonds;
+    std::vector <Bond> newbonds;
     std::vector <std::vector<int>> angles;
     std::vector <std::vector<int>> dihedrals;
     std::vector <std::vector<int>> torsions;
@@ -67,6 +79,7 @@ public:
     void move_to_COM();
     bool SpinChargeValidate();
     void FindBonds();
+    void SetBondOrders();
     void FindAngles();
     void FindDihedrals();
     void FindTorsions();
@@ -74,7 +87,6 @@ public:
     void Validate_Mol();
     void SetRESPChargeOfAtom(int atom_number, double resp_value);
     double GetRESPChargeOfAtom(int atom_number);
-
 };
 
 
@@ -102,6 +114,29 @@ class Frcmod_File
         ~Frcmod_File();
         void Write_Frcmod_File(Settings settings);
 
+};
+
+class Mol2File
+{
+    public:
+        int n_atoms;
+        int n_bonds;
+        // std::string filename;
+        std::string atoms;
+        std::string bonds;
+        std::string head_atom;
+        std::string tail_atom;
+        int charge;
+        std::string resname;
+
+        Mol2File(int chg, std::string r_name);
+        ~Mol2File();
+        void WriteMol2(std::string filename);
+        void AddHeadAtom(std::string atomname);
+        void AddTailAtom(std::string atomname);
+
+        void AddAtom(std::string atomname,double x, double y, double z, std::string atomtype, std::string resname, double respcharge);
+        void AddBond(int atom1, int atom2, int order);
 };
 
 #endif

@@ -25,10 +25,7 @@ Molecule::Molecule(Settings settings)
             continue;
         }
         Atom curr_atom(line);
-        // if (std::find(settings.dummy_atom_names.begin(),settings.dummy_atom_names.end(),curr_atom.atom_name) != settings.dummy_atom_names.end())
-        // {
-        //     continue;
-        // }
+
         int name_counter=1;
         if (res_name == "UNK")
         {
@@ -96,6 +93,7 @@ double Molecule::GetRESPChargeOfAtom(int atom_number)
             return atom.resp_charge;
         }
     }
+    return 0.0;
 }
 
 void Molecule::Write_PDB(std::string job_dir,std::string inputfile)
@@ -171,13 +169,23 @@ void Molecule::FindBonds()
             double x2 = atoms[j].xx;
             double y2 = atoms[j].yy;
             double z2 = atoms[j].zz;
-            double vdw_2 = atoms[i].vdw_radius;
+            double vdw_2 = atoms[j].vdw_radius;
             double dist = sqrt( pow(x2 - x1, 2) + pow(y2 - y1, 2) + pow(z2 - z1, 2) );
             double vdw_dist = (vdw_2 + vdw_1)/2; //average of vdw radii?
             if (dist < vdw_dist)
             {
                 // based on VDW radii distances, 
                 bonds.push_back({(int)i,(int)j});
+            }
+            if ((atoms[i].element == "B") || (atoms[j].element == "B"))
+            {
+                std::cout << atoms[i].atom_name <<" -- "<<atoms[j].atom_name << ": " << dist<< " (" << vdw_dist << ")";
+                if (dist < vdw_dist)
+                {
+                    std::cout << " --BONDED--";
+                }
+                std::cout << std::endl;
+
             }
         }
     }
@@ -189,6 +197,164 @@ void Molecule::FindBonds()
         atoms[a].bonded_to_elements.push_back(atoms[b].element);
         atoms[b].bonded_to_indexes.push_back(a);
         atoms[b].bonded_to_elements.push_back(atoms[a].element);
+    }
+    SetBondOrders();
+}
+
+void Molecule::SetBondOrders()
+{
+    int idx = 1;
+    std::map<std::string,int> max_bonds_allowed = {{"C",4}, {"N",3}, {"O",2}, {"S",5}, {"P",6} };
+    for (std::vector<int> bond : bonds)
+    {
+        std::map<int,int> total_bonds_counted = {};
+        int a = bond[0];
+        int b = bond[1];
+        if (total_bonds_counted.count(a) == 0)
+        {
+            total_bonds_counted[a] = 0;
+        }
+        if (total_bonds_counted.count(b) == 0)
+        {
+            total_bonds_counted[b] = 0;
+        }
+
+        Atom atom1 = atoms[a];
+        Atom atom2 = atoms[b];
+
+        // All hydrogens are single-bonded
+        if (atom1.element == "H" || atom2.element == "H")
+        {
+            Bond tmpbond(idx, a, b, 1);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]++;
+            total_bonds_counted[b]++;
+            continue;
+        }
+
+        // if a carbon has 4 bonded elements, all bonds are single
+        if (atom1.element == "C" && atom1.bonded_to_elements.size() == 4)
+        {
+            Bond tmpbond(idx, a, b, 1);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]++;
+            total_bonds_counted[b]++;
+            continue;
+        }
+        if (atom2.element == "C" && atom2.bonded_to_elements.size() == 4)
+        {
+            Bond tmpbond(idx, a, b, 1);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]++;
+            total_bonds_counted[b]++;
+            continue;
+        }
+
+
+        // If an oxygen has two bonded atoms, they're both single-bonded
+        if (atom1.element == "O" && atom1.bonded_to_elements.size() > 1)
+        {
+            Bond tmpbond(idx, a, b, 1);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]++;
+            total_bonds_counted[b]++;
+            continue;
+        }
+        if (atom2.element == "O" && atom2.bonded_to_elements.size() > 1)
+        {
+            Bond tmpbond(idx, a, b, 1);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]++;
+            total_bonds_counted[b]++;
+            continue;
+        }
+
+        // carbonyl oxygens
+        if (atom1.element == "O" && atom1.bonded_to_elements.size() == 1 && atom2.element == "C" && atom2.bonded_to_elements.size() == 3) //oxygen bonded only to sp2 carbon
+        {
+            Bond tmpbond(idx, a, b, 2);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]+=2;
+            total_bonds_counted[b]+=2;
+            continue;
+        }
+        if (atom2.element == "O" && atom2.bonded_to_elements.size() == 1 && atom1.element == "C" && atom1.bonded_to_elements.size() == 3) //oxygen bonded only to sp2 carbon
+        {
+            Bond tmpbond(idx, a, b, 2);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]+=2;
+            total_bonds_counted[b]+=2;
+            continue;
+        }
+
+        // sp2 carbons: checking how many available bonds exist for each atom in the pair.
+        if (atom1.element == "C" && atom1.bonded_to_elements.size() == 3)
+        {
+            int avail_bonds_1 = max_bonds_allowed[atom1.element] - total_bonds_counted[a];
+            int avail_bonds_2 = max_bonds_allowed[atom2.element] - total_bonds_counted[b];
+            if (avail_bonds_1 > 1 && avail_bonds_2 > 1)
+            {
+                Bond tmpbond(idx, a, b, 2);
+                newbonds.push_back(tmpbond);
+                idx++;
+                total_bonds_counted[a]+=2;
+                total_bonds_counted[b]+=2;
+                continue;
+            }
+            Bond tmpbond(idx, a, b, 1);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]++;
+            total_bonds_counted[b]++;
+            continue;
+        }
+        if (atom2.element == "C" && atom2.bonded_to_elements.size() == 3)
+        {
+            int avail_bonds_1 = max_bonds_allowed[atom1.element] - total_bonds_counted[a];
+            int avail_bonds_2 = max_bonds_allowed[atom2.element] - total_bonds_counted[b];
+            if (avail_bonds_1 > 1 && avail_bonds_2 > 1)
+            {
+                Bond tmpbond(idx, a, b, 2);
+                newbonds.push_back(tmpbond);
+                idx++;
+                total_bonds_counted[a]+=2;
+                total_bonds_counted[b]+=2;
+                continue;
+            }
+            Bond tmpbond(idx, a, b, 1);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]++;
+            total_bonds_counted[b]++;
+            continue;
+        }
+        if (atom1.element == "P" || atom2.element == "P")
+        {
+            int avail_bonds_1 = max_bonds_allowed[atom1.element] - total_bonds_counted[a];
+            int avail_bonds_2 = max_bonds_allowed[atom2.element] - total_bonds_counted[b];
+            if (avail_bonds_1 > 1 && avail_bonds_2 > 1 && (atom1.element == "O" || atom2.element == "O"))
+            {
+                Bond tmpbond(idx, a, b, 2);
+                newbonds.push_back(tmpbond);
+                idx++;
+                total_bonds_counted[a]+=2;
+                total_bonds_counted[b]+=2;
+                continue;
+            }
+            Bond tmpbond(idx, a, b, 1);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]++;
+            total_bonds_counted[b]++;
+            continue;
+        }
     }
 }
 
@@ -222,7 +388,18 @@ void Molecule::FindAngles()
                 {
                     angle_tmp = {a1,a2,a3};
                 }
-                angles.push_back(angle_tmp);
+                else
+                {
+                    continue;
+                }
+                if (angle_tmp[0] > angle_tmp[2])
+                {
+                    angle_tmp = {angle_tmp[2],angle_tmp[1],angle_tmp[0]};
+                }
+                if (std::find(angles.begin(),angles.end(),angle_tmp) == angles.end())
+                {
+                    angles.push_back(angle_tmp);
+                }                
             }
         }
     }
@@ -263,7 +440,14 @@ void Molecule::FindTorsions()
             {
                 continue;
             }
-            torsions.push_back(torsion_tmp);
+            if (torsion_tmp[0] > torsion_tmp[3])
+            {
+                torsion_tmp = {torsion_tmp[3],torsion_tmp[2],torsion_tmp[1],torsion_tmp[0]};
+            }
+            if (std::find(torsions.begin(),torsions.end(),torsion_tmp) == torsions.end())
+            {
+                torsions.push_back(torsion_tmp);
+            }            
         }
     }
 }
@@ -279,7 +463,7 @@ void Molecule::FindDihedrals()
         int a1 = angles[a][0];
         int a2 = angles[a][1];
         int a3 = angles[a][2];
-        for (unsigned int b=0;b<bonds.size(); b++)
+        for (unsigned int b=0; b<bonds.size(); b++)
         {
             int b1 = bonds[b][0];
             int b2 = bonds[b][1];
@@ -326,7 +510,20 @@ void Molecule::FindRings()
             if (((at_A == at_E) && (at_D == at_F)) || ((at_A == at_F) && (at_D == at_E)) )
             {
                 // If torsion is 4-membered ring, skip subsequent comparisons for this bond.
-                four_rings.push_back({at_A,at_B,at_C,at_D});
+                // get ring starting from lowest atom number and going in direction of second lowest atom number.
+                std::vector<int> tmp_ring = {at_A, at_B, at_C, at_D};
+                while (std::min_element(tmp_ring.begin(),tmp_ring.end()) != tmp_ring.begin())
+                {
+                    std::rotate(tmp_ring.begin(),tmp_ring.end()-1,tmp_ring.end());
+                }
+                if (tmp_ring[1] > tmp_ring[3])
+                {
+                    tmp_ring = {tmp_ring[0],tmp_ring[3],tmp_ring[2],tmp_ring[1]};
+                }
+                if (std::find(four_rings.begin(),four_rings.end(),tmp_ring) ==four_rings.end())
+                {
+                    four_rings.push_back(tmp_ring);
+                }
                 break;
             }
         }
@@ -340,7 +537,19 @@ void Molecule::FindRings()
             {
                 if ((at_F != at_B) && (at_F != at_C))
                 {
-                        five_rings.push_back({at_A,at_B,at_C,at_D,at_F});
+                    std::vector<int> tmp_ring = {at_A, at_B, at_C, at_D, at_F};
+                    while (std::min_element(tmp_ring.begin(),tmp_ring.end()) != tmp_ring.begin())
+                    {
+                        std::rotate(tmp_ring.begin(),tmp_ring.end()-1,tmp_ring.end());
+                    }
+                    if (tmp_ring[1] > tmp_ring[4])
+                    {
+                        tmp_ring = {tmp_ring[0],tmp_ring[4],tmp_ring[3],tmp_ring[2],tmp_ring[1]};
+                    }
+                    if (std::find(five_rings.begin(),five_rings.end(),tmp_ring) ==five_rings.end())
+                    {
+                        five_rings.push_back(tmp_ring);
+                    }
                 }
             }
         }
@@ -364,19 +573,40 @@ void Molecule::FindRings()
             {
                 if ((at_F != at_B) && (at_F != at_C) && (at_G != at_B) && (at_G != at_C))
                 {
-                    six_rings.push_back({at_A,at_B,at_C,at_D,at_G,at_F});
-
+                    std::vector<int> tmp_ring = {at_A, at_B, at_C, at_D, at_G, at_F};
+                    while (std::min_element(tmp_ring.begin(),tmp_ring.end()) != tmp_ring.begin())
+                    {
+                        std::rotate(tmp_ring.begin(),tmp_ring.end()-1,tmp_ring.end());
+                    }
+                    if (tmp_ring[1] > tmp_ring[5])
+                    {
+                        tmp_ring = {tmp_ring[0],tmp_ring[5],tmp_ring[4],tmp_ring[3],tmp_ring[2],tmp_ring[1]};
+                    }
+                    if (std::find(six_rings.begin(),six_rings.end(),tmp_ring) ==six_rings.end())
+                    {
+                        six_rings.push_back(tmp_ring);
+                    }
                 }
             }
             else if ((at_A == at_H) && (at_D == at_E))
             {
                 if ((at_F != at_B) && (at_F != at_C) && (at_G != at_B) && (at_G != at_C))
                 {
-                    six_rings.push_back({at_A,at_B,at_C,at_D,at_F,at_G});
+                    std::vector<int> tmp_ring = {at_A, at_B, at_C, at_D, at_F, at_G};
+                    while (std::min_element(tmp_ring.begin(),tmp_ring.end()) != tmp_ring.begin())
+                    {
+                        std::rotate(tmp_ring.begin(),tmp_ring.end()-1,tmp_ring.end());
+                    }
+                    if (tmp_ring[1] > tmp_ring[5])
+                    {
+                        tmp_ring = {tmp_ring[0],tmp_ring[5],tmp_ring[4],tmp_ring[3],tmp_ring[2],tmp_ring[1]};
+                    }
+                    if (std::find(six_rings.begin(),six_rings.end(),tmp_ring) ==six_rings.end())
+                    {
+                        six_rings.push_back(tmp_ring);
+                    }
                 }
             }
         }
     }
-
-    // gotta check if any rings are duplicates...
 }

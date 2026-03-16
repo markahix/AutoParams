@@ -156,3 +156,16 @@ std::string Atom::print_mol2_line()
     return "mol2 line\n";
 }
 
+
+Bond::Bond(int idx, int at1, int at2, int ord)
+{
+    index = idx;
+    atom1 = at1;
+    atom2 = at2;
+    order = ord;
+}
+
+Bond::~Bond()
+{
+
+}

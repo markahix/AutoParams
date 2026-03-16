@@ -9,6 +9,7 @@
 void write_TC_resp_input(Settings settings, Molecule mol);
 bool validate_TC_resp_output(Settings settings);
 void parse_TC_resp_output(Molecule &mol,Settings settings);
+void BuildMol2File(Settings settings, Molecule mol);
 void Generate_Mol2_File(Settings settings);
 void Validate_Mol2_File(Settings settings);
 void Add_Charges_To_Mol2(Settings settings, Molecule &mol);

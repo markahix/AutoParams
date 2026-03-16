@@ -38,12 +38,18 @@ void write_TC_resp_input(Settings settings, Molecule mol)
         {"scrdir","scr/"},
         {"run","energy"},
         {"resp","yes"}};
+
     for(std::map<std::string,std::string>::iterator iter = settings.tc_keys.begin(); iter != settings.tc_keys.end(); ++iter)
     {
         std::string k =  iter->first;
         std::string v = iter->second;
         tc_keywords[k] = v;
+        if (k == "run")
+        {
+            std::cout << "Attempted to change runtype from command line call.  Ignoring." << std::endl;
+        }
     }
+    tc_keywords["run"] = "energy";
 
     //Write the TeraChem input to calculate resp charges.
     std::ofstream outfile;
@@ -127,6 +133,38 @@ void parse_TC_resp_output(Molecule &mol,Settings settings)
     }
     return;
 }
+void BuildMol2File(Settings settings, Molecule mol)
+{
+    Mol2File newmol2(settings.mol_charge, mol.res_name);
+    for (Atom atom : mol.atoms)
+    {
+        if (std::find(settings.dummy_atom_names.begin(), settings.dummy_atom_names.end(),atom.atom_name) != settings.dummy_atom_names.end())
+        {
+            continue;
+        }
+        newmol2.AddAtom(atom.atom_name, atom.xx, atom.yy, atom.zz, atom.atom_type, mol.res_name, atom.resp_charge);
+    }
+    for (Bond bond : mol.newbonds)
+    {
+        Atom atom1 = mol.atoms[bond.atom1];
+        Atom atom2 = mol.atoms[bond.atom2];
+        if (std::find(settings.dummy_atom_names.begin(), settings.dummy_atom_names.end(),atom1.atom_name) != settings.dummy_atom_names.end())
+        {
+            continue;
+        } 
+        if (std::find(settings.dummy_atom_names.begin(), settings.dummy_atom_names.end(),atom2.atom_name) != settings.dummy_atom_names.end())
+        {
+            continue;
+        }
+        newmol2.AddBond(bond.atom1+1, bond.atom2+1, bond.order);
+    }
+    newmol2.AddHeadAtom(settings.head_atom_name);
+    newmol2.AddTailAtom(settings.tail_atom_name);
+    newmol2.WriteMol2(settings.job_dir + settings.mol2file);
+}
+
+
+
 
 void Generate_Mol2_File(Settings settings)
 {
@@ -270,8 +308,8 @@ void Validate_Mol2_File(Settings settings)
     std::ofstream new_mol2;
     std::string line;
     std::stringstream buffer;
-    std::string curr_path = fs::current_path();
-    fs::current_path(settings.job_dir);
+    // std::string curr_path = fs::current_path();
+    // fs::current_path(settings.job_dir);
     //Clear dummy atoms from mol2 while maintaining original atomtyping.
     for (unsigned int i = 0; i < settings.dummy_atom_names.size(); i ++)
     {   
@@ -343,7 +381,7 @@ void Validate_Mol2_File(Settings settings)
     tmp_mol2.close();
     new_mol2.close();
     silent_shell("mv tmp2.mol2 tmp.mol2");
-    fs::current_path(curr_path);
+    // fs::current_path(curr_path);
     return;
 }
 
