@@ -177,16 +177,6 @@ void Molecule::FindBonds()
                 // based on VDW radii distances, 
                 bonds.push_back({(int)i,(int)j});
             }
-            if ((atoms[i].element == "B") || (atoms[j].element == "B"))
-            {
-                std::cout << atoms[i].atom_name <<" -- "<<atoms[j].atom_name << ": " << dist<< " (" << vdw_dist << ")";
-                if (dist < vdw_dist)
-                {
-                    std::cout << " --BONDED--";
-                }
-                std::cout << std::endl;
-
-            }
         }
     }
     for (std::vector<int> bond : bonds)
