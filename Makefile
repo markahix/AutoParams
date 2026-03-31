@@ -3,7 +3,7 @@ CC=g++
 SRC_DIR := src
 OBJ_DIR := obj
 BIN_DIR := bin
-INS_DIR := bin
+AGIMUS_BIN_DIR := ../bin
 
 EXE := $(BIN_DIR)/autoparams
 SRC := $(wildcard $(SRC_DIR)/*.cpp)
@@ -31,6 +31,6 @@ clean:
 	@$(RM) -rv $(BIN_DIR) $(OBJ_DIR)
 
 install: 
-	cp $(EXE) $(INS_DIR)
+	cp $(EXE) $(AGIMUS_BIN_DIR)
 
 -include $(OBJ:.o=.d)
