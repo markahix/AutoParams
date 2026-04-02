@@ -194,7 +194,7 @@ void Molecule::FindBonds()
 void Molecule::SetBondOrders()
 {
     int idx = 1;
-    std::map<std::string,int> max_bonds_allowed = {{"C",4}, {"N",3}, {"O",2}, {"S",5}, {"P",6} };
+    std::map<std::string,int> max_bonds_allowed = {{"C",4}, {"N",3}, {"O",2}, {"S",5}, {"P",6}, {"B",4} };
     for (std::vector<int> bond : bonds)
     {
         std::map<int,int> total_bonds_counted = {};
@@ -222,6 +222,50 @@ void Molecule::SetBondOrders()
             total_bonds_counted[b]++;
             continue;
         }
+
+        // All halides are single-bonded
+        if (atom1.element == "F" || atom2.element == "F")
+        {
+            Bond tmpbond(idx, a, b, 1);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]++;
+            total_bonds_counted[b]++;
+            continue;
+        }
+        if (atom1.element == "CL" || atom2.element == "CL")
+        {
+            Bond tmpbond(idx, a, b, 1);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]++;
+            total_bonds_counted[b]++;
+            continue;
+        }
+        if (atom1.element == "BR" || atom2.element == "BR")
+        {
+            Bond tmpbond(idx, a, b, 1);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]++;
+            total_bonds_counted[b]++;
+            continue;
+        }
+        if (atom1.element == "I" || atom2.element == "I")
+        {
+            Bond tmpbond(idx, a, b, 1);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]++;
+            total_bonds_counted[b]++;
+            continue;
+        }
+
+        
+
+
+
+
 
         // if a carbon has 4 bonded elements, all bonds are single
         if (atom1.element == "C" && atom1.bonded_to_elements.size() == 4)
@@ -345,6 +389,31 @@ void Molecule::SetBondOrders()
             total_bonds_counted[b]++;
             continue;
         }
+
+        // handle boron somehow
+        if (atom1.element == "B" || atom2.element == "B")
+        {
+            // int avail_bonds_1 = max_bonds_allowed[atom1.element] - total_bonds_counted[a];
+            // int avail_bonds_2 = max_bonds_allowed[atom2.element] - total_bonds_counted[b];
+            // if (avail_bonds_1 > 1 && avail_bonds_2 > 1 && (atom1.element == "O" || atom2.element == "O"))
+            // {
+            //     Bond tmpbond(idx, a, b, 2);
+            //     newbonds.push_back(tmpbond);
+            //     idx++;
+            //     total_bonds_counted[a]+=2;
+            //     total_bonds_counted[b]+=2;
+            //     continue;
+            // }
+            Bond tmpbond(idx, a, b, 1);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]++;
+            total_bonds_counted[b]++;
+            continue;
+        }
+
+
+        // handle NITROGENS?!
     }
 }
 
