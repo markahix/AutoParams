@@ -93,7 +93,7 @@ bool validate_TC_resp_output(Settings settings)
     return false;
 }
 
-void parse_TC_resp_output(Molecule &mol,Settings settings)
+void parse_TC_resp_output(Molecule &mol, Settings settings)
 {
     std::vector<double> resp_charges;
     std::ifstream respfile(settings.job_dir + "/resp.out",std::ios::in);
@@ -129,6 +129,7 @@ void parse_TC_resp_output(Molecule &mol,Settings settings)
         buffer.flush();
         buffer.str("");
         mol.SetRESPChargeOfAtom(atom_count,charge);
+        std::cout << "Partial charge of atom " << mol.atoms[atom_count].atom_name << " is " << mol.GetRESPChargeOfAtom(atom_count) << std::endl;
         atom_count++;
     }
     return;

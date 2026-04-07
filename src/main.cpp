@@ -103,29 +103,29 @@ int main(int argc, char **argv)
         
     if (!settings.USE_AM1BCC_CHARGES)
     {
-    // calculate RESP charges, apply results to atoms in molecule.
-    write_TC_resp_input(settings,mol);
-    buffer.str("");
-    buffer << "Running TeraChem for RESP charges.  This may take a while..." << std::endl;
-    settings.Output(buffer.str());
-    std::string curr_path = fs::current_path();
-    fs::current_path(settings.job_dir);
-    buffer.str("");
-    buffer << "module load " << DEFAULT_TERACHEM_MODULE << " && terachem -i resp.in 1> resp.out 2> resp.err";
-    silent_shell(buffer.str().c_str());
-    buffer.str("");
-    fs::current_path(curr_path);
+        // calculate RESP charges, apply results to atoms in molecule.
+        write_TC_resp_input(settings,mol);
+        buffer.str("");
+        buffer << "Running TeraChem for RESP charges.  This may take a while..." << std::endl;
+        settings.Output(buffer.str());
+        std::string curr_path = fs::current_path();
+        fs::current_path(settings.job_dir);
+        buffer.str("");
+        buffer << "module load " << DEFAULT_TERACHEM_MODULE << " && terachem -i resp.in 1> resp.out 2> resp.err";
+        silent_shell(buffer.str().c_str());
+        buffer.str("");
+        fs::current_path(curr_path);
 
-    // validate successful resp job before trying to parse output.
-    // If validation fails, there could be an issue with convergence, but the charges may still be useful.  
-    // We will alert the end user and continue on.  
-    if (!validate_TC_resp_output(settings))
-    {   
-        settings.Output("RESP calculation did not complete successfully.  Attempting to continue with current charge values.");
-    }
-    
-    // parse RESP charges
-    parse_TC_resp_output(mol, settings);
+        // validate successful resp job before trying to parse output.
+        // If validation fails, there could be an issue with convergence, but the charges may still be useful.  
+        // We will alert the end user and continue on.  
+        if (!validate_TC_resp_output(settings))
+        {   
+            settings.Output("RESP calculation did not complete successfully.  Attempting to continue with current charge values.");
+        }
+        
+        // parse RESP charges
+        parse_TC_resp_output(mol, settings);
     }
     // ************************* Here's where I can put in my molecule atom-typer code...
     AtomTyping(mol);

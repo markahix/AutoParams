@@ -260,13 +260,6 @@ void Molecule::SetBondOrders()
             total_bonds_counted[b]++;
             continue;
         }
-
-        
-
-
-
-
-
         // if a carbon has 4 bonded elements, all bonds are single
         if (atom1.element == "C" && atom1.bonded_to_elements.size() == 4)
         {
