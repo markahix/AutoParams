@@ -20,6 +20,7 @@
 #include <ctime>
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
+#include "config.h"
 
 // Command Line Interaction
 std::string GetSystemResponse(const char* cmd);

@@ -89,7 +89,10 @@ void TeraChemOpt(Settings settings)
     of.close();
 
     // Run TeraChem Optimizer
-    silent_shell("terachem -i opt.in 1> opt.out 2> opt.err");
+    buffer.str("");
+    buffer << "module load " << DEFAULT_TERACHEM_MODULE << " && terachem -i opt.in 1> opt.out 2> opt.err";
+    silent_shell(buffer.str().c_str());
+    buffer.str("");
 
     // Check if optimization finished successfully.
     if (!TCJobSuccess())
