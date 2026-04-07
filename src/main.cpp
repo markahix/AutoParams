@@ -110,7 +110,10 @@ int main(int argc, char **argv)
     settings.Output(buffer.str());
     std::string curr_path = fs::current_path();
     fs::current_path(settings.job_dir);
-    silent_shell("terachem -i resp.in 1> resp.out 2> resp.err");
+    buffer.str("");
+    buffer << "module load " << DEFAULT_TERACHEM_MODULE << " && terachem -i resp.in 1> resp.out 2> resp.err";
+    silent_shell(buffer.str().c_str());
+    buffer.str("");
     fs::current_path(curr_path);
 
     // validate successful resp job before trying to parse output.
