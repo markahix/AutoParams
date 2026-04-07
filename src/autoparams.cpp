@@ -110,7 +110,7 @@ void parse_TC_resp_output(Molecule &mol, Settings settings)
     // Parse the output file for RESP charges.
     while (getline(respfile,line))
     {
-        if (line.find("ESP restraint charges") != std::string::npos)
+        if (line.find("ESP restrained charges") != std::string::npos)
         {
             getline(respfile,line);
             getline(respfile,line);
