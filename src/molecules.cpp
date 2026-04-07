@@ -393,17 +393,7 @@ void Molecule::SetBondOrders()
         // handle boron somehow
         if (atom1.element == "B" || atom2.element == "B")
         {
-            // int avail_bonds_1 = max_bonds_allowed[atom1.element] - total_bonds_counted[a];
-            // int avail_bonds_2 = max_bonds_allowed[atom2.element] - total_bonds_counted[b];
-            // if (avail_bonds_1 > 1 && avail_bonds_2 > 1 && (atom1.element == "O" || atom2.element == "O"))
-            // {
-            //     Bond tmpbond(idx, a, b, 2);
-            //     newbonds.push_back(tmpbond);
-            //     idx++;
-            //     total_bonds_counted[a]+=2;
-            //     total_bonds_counted[b]+=2;
-            //     continue;
-            // }
+
             Bond tmpbond(idx, a, b, 1);
             newbonds.push_back(tmpbond);
             idx++;
@@ -414,6 +404,60 @@ void Molecule::SetBondOrders()
 
 
         // handle NITROGENS?!
+        if (atom1.element == "N" && atom2.element == "O")
+        {
+            if (atom2.bonded_to_elements.size() > 1 )
+            {
+                Bond tmpbond(idx, a, b, 1);
+                newbonds.push_back(tmpbond);
+                idx++;
+                total_bonds_counted[a]++;
+                total_bonds_counted[b]++;
+                continue;
+            }
+            if (total_bonds_counted[a] >=2)
+            {
+                Bond tmpbond(idx, a, b, 1);
+                newbonds.push_back(tmpbond);
+                idx++;
+                total_bonds_counted[a]++;
+                total_bonds_counted[b]++;
+                continue;
+            }
+            Bond tmpbond(idx, a, b, 2);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]+=2;
+            total_bonds_counted[b]+=2;
+            continue;
+        }
+        if (atom2.element == "N" && atom1.element == "O")
+        {
+            if (atom1.bonded_to_elements.size() > 1 )
+            {
+                Bond tmpbond(idx, a, b, 1);
+                newbonds.push_back(tmpbond);
+                idx++;
+                total_bonds_counted[a]++;
+                total_bonds_counted[b]++;
+                continue;
+            }
+            if (total_bonds_counted[b] >=2)
+            {
+                Bond tmpbond(idx, a, b, 1);
+                newbonds.push_back(tmpbond);
+                idx++;
+                total_bonds_counted[a]++;
+                total_bonds_counted[b]++;
+                continue;
+            }
+            Bond tmpbond(idx, a, b, 2);
+            newbonds.push_back(tmpbond);
+            idx++;
+            total_bonds_counted[a]+=2;
+            total_bonds_counted[b]+=2;
+            continue;
+        }
     }
 }
 
