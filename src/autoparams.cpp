@@ -129,7 +129,7 @@ void parse_TC_resp_output(Molecule &mol, Settings settings)
         buffer.flush();
         buffer.str("");
         mol.SetRESPChargeOfAtom(atom_count,charge);
-        std::cout << "Partial charge of atom " << mol.atoms[atom_count].atom_name << " is " << mol.GetRESPChargeOfAtom(atom_count) << std::endl;
+        std::cout << "Partial charge of atom " << mol.atoms[atom_count-1].atom_name << " is " << mol.GetRESPChargeOfAtom(atom_count) << std::endl;
         atom_count++;
     }
     return;
