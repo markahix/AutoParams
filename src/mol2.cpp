@@ -33,21 +33,29 @@ std::string process_S(Atom atom, Molecule mol)
 
 std::string process_C(Atom atom, Molecule mol)
 {
+    // vector set of values for the incoming atom...
+    // number of bonded elements in order? Quicker matching? all properties in an ordered list? how do we do this?
     if (atom.bonded_to_elements.size() == 4)
     {
         // If it's an SP3 carbon, it's "CT"
         return "CT";
     }
-    if (atom.bonded_to_elements.size() == 1)
+    if (atom.bonded_to_elements.size() == 2) //sp carbon.
     {
     // If it's an SP carbon, it's "CY" (bonded to nitrogen) or "CZ" (not bonded to nitrogen).
-        if (std::find(atom.bonded_to_elements.begin(), atom.bonded_to_elements.end(),"N") != atom.bonded_to_elements.end())
+        if (count_element_in_array(atom.bonded_to_elements,"N") > 0)
         {
             return "CY";
         }
         return "CZ";
     }
-
+    if (atom.bonded_to_elements.size() == 3) //sp2 carbon, possible alkene
+    {
+        if (count_element_in_array(atom.bonded_to_elements,"H") == 2) // 2H on sp2 carbon means it's terminal alkene
+        {
+            return "CA";
+        }
+    }
     // Identify ring structures
     int n_rings = 0;
     bool five_member = false;
@@ -97,6 +105,7 @@ std::string process_C(Atom atom, Molecule mol)
     {
         return "CD"; // atom in the middle of C=CD-CD=C (conjugated double-bonds)
     }
+
     if (count_element_in_array(atom.bonded_to_elements,"O") > 0)
     {
         return "C "; // carbonyl group
