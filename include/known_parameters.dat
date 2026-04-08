@@ -902,10 +902,11 @@ EP-O_sb       600.00   0.200
 EP-N_sp3      600.00   0.200
 EP-N_sp2      600.00   0.200
 EP-S          600.00   0.700
+O_sb-S        312.40   1.623
+O_db-S        312.40   1.623
 
 %DEFAULT_ANGLE_TYPES
 //sp2 boron centers
-
 
 //sp3 boron centers
 O_db-B_sp3-O_db        90.000     109.50
@@ -915,7 +916,6 @@ O_db_sb-B_sp3-C_sp2    60.000     109.50
 O_db_sb-B_sp3-C_sp2    60.000     109.50
 O_db_sb-B_sp3-C_sp3    60.000     109.50
 O_db-B_sp3-C_sp2       60.000     109.50
-
 
 //sp carbon centers
 C_sp3-C_sp-N_sp        80.000     180.000
