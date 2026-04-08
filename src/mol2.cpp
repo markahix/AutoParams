@@ -213,26 +213,39 @@ std::string process_N(Atom atom, Molecule mol)
 std::string process_O(Atom atom, Molecule mol)
 {
     int n_bonds = atom.bonded_to_elements.size();
-    if (count_element_in_array(atom.bonded_to_elements,"H") > 0)
+    if (count_element_in_array(atom.bonded_to_elements,"H") > 0)  // hydroxyl group oxygen
     {
-        return "OH"; // hydroxyl group oxygen
+        return "OH";
     }
-    if (count_element_in_array(atom.bonded_to_elements,"P") > 0)
+    if (count_element_in_array(atom.bonded_to_elements,"P") > 0)  // phosphate oxygen
     {
-        if (n_bonds == 1)
+        if (n_bonds == 1) //terminal oxygen
         {
             return "OP";
         }
-        return "O2";
+        return "O2"; //linking oxygen
     }
-    if (count_element_in_array(atom.bonded_to_elements,"C") > 0)
+    if (count_element_in_array(atom.bonded_to_elements,"S") > 0)  // sulfate oxygen
     {
-        if (n_bonds == 1)
+        return "OS";
+    }
+    if (count_element_in_array(atom.bonded_to_elements,"C") == 2) // oxygen bound to two carbons is an ester/ether linkage.
+    {
+        return "OS";
+    }
+    if ((n_bonds == 1) && (count_element_in_array(atom.bonded_to_elements,"C") == 1)) // if bound to one carbon, check the status of that carbon.
+    {
+        int b_bond_count = mol.atoms[atom.bonded_to_indexes[0]].bonded_to_indexes.size();
+        if (b_bond_count == 4) //sp3 carbon
         {
+            return "OH";
+        }
+        if (b_bond_count == 3) //sp2 carbon
+        {
+            // how to check between carbonyl and deprotonated OH group?
             return "O "; // carbonyl oxygen
         }
-        return "OS"; // ether/ester oxygen
-    }
+    }        
     return "OH";
 }
 
