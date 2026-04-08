@@ -27,6 +27,10 @@ std::string process_S(Atom atom, Molecule mol)
     {
         return "SS"; // If part of a disulfide bond, it's "SS" atom type.
     }
+    if (count_element_in_array(atom.bonded_to_elements,"O") > 0)
+    {
+        return "SO"; // Part of sulfate group, most likely.
+    }
     // Otherwise, it's an "S " atom type.
     return "S ";
 }
