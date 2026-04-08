@@ -134,6 +134,7 @@ void parse_TC_resp_output(Molecule &mol, Settings settings)
     }
     return;
 }
+
 void BuildMol2File(Settings settings, Molecule mol)
 {
     Mol2File newmol2(settings.mol_charge, mol.res_name);

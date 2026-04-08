@@ -204,6 +204,10 @@ std::string process_N(Atom atom, Molecule mol)
 std::string process_O(Atom atom, Molecule mol)
 {
     int n_bonds = atom.bonded_to_elements.size();
+    if (count_element_in_array(atom.bonded_to_elements,"H") > 0)
+    {
+        return "OH"; // hydroxyl group oxygen
+    }
     if (count_element_in_array(atom.bonded_to_elements,"P") > 0)
     {
         if (n_bonds == 1)
@@ -212,17 +216,13 @@ std::string process_O(Atom atom, Molecule mol)
         }
         return "O2";
     }
-    if (count_element_in_array(atom.bonded_to_elements,"H") > 0)
-    {
-        return "OH";
-    }
     if (count_element_in_array(atom.bonded_to_elements,"C") > 0)
     {
         if (n_bonds == 1)
         {
-            return "O ";
+            return "O "; // carbonyl oxygen
         }
-        return "OS";
+        return "OS"; // ether/ester oxygen
     }
     return "OH";
 }
