@@ -93,7 +93,7 @@ bool validate_TC_resp_output(Settings settings)
     return false;
 }
 
-void parse_TC_resp_output(Molecule &mol, Settings settings)
+void parse_TC_resp_output(Molecule &mol, Settings settings, bool resp_completed)
 {
     std::vector<double> resp_charges;
     std::ifstream respfile(settings.job_dir + "/resp.out",std::ios::in);
@@ -107,30 +107,62 @@ void parse_TC_resp_output(Molecule &mol, Settings settings)
         settings.Error("Unable to open output file from RESP calculation.");
         return;
     }
-    // Parse the output file for RESP charges.
-    while (getline(respfile,line))
+    if (!resp_completed)
     {
-        if (line.find("ESP restrained charges") != std::string::npos)
+        // find the unrestrained charges section, if possible.
+        std::cout << "RESP calculation did not complete, attempting to find unrestrained RESP charges." << std::endl;
+        while(getline(respfile,line))
         {
-            getline(respfile,line);
-            getline(respfile,line);
-            break;
+            if (line.find("ESP unrestrained charges") != std::string::npos)
+            {
+                getline(respfile,line);
+                getline(respfile,line);
+                break;
+            }
+        }
+        int atom_count=1;
+        while (getline(respfile,line))
+        {
+            if (line.find("------") != std::string::npos)
+            {
+                break;
+            }
+            buffer.str(line);
+            buffer >> atom >> x >> y >> z >> charge;
+            buffer.flush();
+            buffer.str("");
+            mol.SetRESPChargeOfAtom(atom_count,charge);
+            std::cout << "Partial charge of atom " << mol.atoms[atom_count-1].atom_name << " is " << mol.GetRESPChargeOfAtom(atom_count) << std::endl;
+            atom_count++;
         }
     }
-    int atom_count=1;
-    while (getline(respfile,line))
+    else
     {
-        if (line.find("------") != std::string::npos)
+        // Parse the output file for RESP charges.
+        while (getline(respfile,line))
         {
-            break;
+            if (line.find("ESP restrained charges") != std::string::npos)
+            {
+                getline(respfile,line);
+                getline(respfile,line);
+                break;
+            }
         }
-        buffer.str(line);
-        buffer >> atom >> x >> y >> z >> charge;
-        buffer.flush();
-        buffer.str("");
-        mol.SetRESPChargeOfAtom(atom_count,charge);
-        std::cout << "Partial charge of atom " << mol.atoms[atom_count-1].atom_name << " is " << mol.GetRESPChargeOfAtom(atom_count) << std::endl;
-        atom_count++;
+        int atom_count=1;
+        while (getline(respfile,line))
+        {
+            if (line.find("------") != std::string::npos)
+            {
+                break;
+            }
+            buffer.str(line);
+            buffer >> atom >> x >> y >> z >> charge;
+            buffer.flush();
+            buffer.str("");
+            mol.SetRESPChargeOfAtom(atom_count,charge);
+            std::cout << "Partial charge of atom " << mol.atoms[atom_count-1].atom_name << " is " << mol.GetRESPChargeOfAtom(atom_count) << std::endl;
+            atom_count++;
+        }
     }
     return;
 }

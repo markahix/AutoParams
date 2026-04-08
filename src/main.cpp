@@ -122,10 +122,14 @@ int main(int argc, char **argv)
         if (!validate_TC_resp_output(settings))
         {   
             settings.Output("RESP calculation did not complete successfully.  Attempting to continue with current charge values.");
+            // parse RESP charges
+            parse_TC_resp_output(mol, settings, false);
         }
-        
-        // parse RESP charges
-        parse_TC_resp_output(mol, settings);
+        else
+        {
+            // parse RESP charges
+            parse_TC_resp_output(mol, settings, true);
+        }
     }
     // ************************* Here's where I can put in my molecule atom-typer code...
     AtomTyping(mol);
