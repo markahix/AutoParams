@@ -1,7 +1,59 @@
 #include "classes.h"
 
+void CleanPDB(Settings settings)
+{
+    std::string filename = settings.inputfile;
+    std::vector<std::string> atom_lines = {};
+    std::vector<std::string> dummy_lines = {};
+    std::ifstream pdbfile(filename,std::ios::in);
+    std::string line;
+    while (getline(pdbfile,line))
+    {
+        std::string atom_name = trim_whitespace(line.substr(12,4));
+        if (find(settings.dummy_atom_names.begin(), settings.dummy_atom_names.end(), atom_name) != settings.dummy_atom_names.end())
+        {
+            dummy_lines.push_back(line);
+        }
+        else
+        {
+            atom_lines.push_back(line);
+        }
+    }
+    pdbfile.close();
+
+    int n_atoms=0;
+    std::vector<std::string> new_pdb_lines = {};
+    for (std::string line : atom_lines)
+    {
+        n_atoms++;
+        std::stringstream new_line;
+        new_line.str("");
+        new_line << "ATOM  " << std::setw(5) << std::right << n_atoms;
+        new_line << line.substr(11,line.size()-11);
+        new_pdb_lines.push_back(new_line.str());
+    }
+    for (std::string line : dummy_lines)
+    {
+        n_atoms++;
+        std::stringstream new_line;
+        new_line.str("");
+        new_line << "ATOM  " << std::setw(5) << std::right << n_atoms;
+        new_line << line.substr(11,line.size()-11);
+        new_pdb_lines.push_back(new_line.str());
+    }
+    std::ofstream cleaned_pdb("tmp.pdb",std::ios::out);
+    for (std::string line : new_pdb_lines)
+    {
+        cleaned_pdb << line << std::endl;
+    }
+    cleaned_pdb.close();
+
+}
+
+
 Molecule::Molecule(Settings settings)
 {
+    CleanPDB(settings);
     std::string filename = settings.inputfile;
     int formal_charge = settings.mol_charge;
     int spin = settings.mol_spin;
