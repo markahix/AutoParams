@@ -9,6 +9,10 @@ void CleanPDB(Settings settings)
     std::string line;
     while (getline(pdbfile,line))
     {
+        if ((line.find("ATOM") == std::string::npos) && (line.find("HETATM") == std::string::npos))
+        {
+            continue;
+        }
         std::string atom_name = trim_whitespace(line.substr(12,4));
         if (find(settings.dummy_atom_names.begin(), settings.dummy_atom_names.end(), atom_name) != settings.dummy_atom_names.end())
         {
@@ -46,6 +50,7 @@ void CleanPDB(Settings settings)
     {
         cleaned_pdb << line << std::endl;
     }
+    cleaned_pdb << "END" << std::endl;
     cleaned_pdb.close();
 
 }
