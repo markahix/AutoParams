@@ -45,7 +45,7 @@ void CleanPDB(Settings settings)
         new_line << line.substr(11,line.size()-11);
         new_pdb_lines.push_back(new_line.str());
     }
-    std::ofstream cleaned_pdb("tmp.pdb",std::ios::out);
+    std::ofstream cleaned_pdb(filename,std::ios::out);
     for (std::string line : new_pdb_lines)
     {
         cleaned_pdb << line << std::endl;
