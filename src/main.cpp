@@ -111,7 +111,11 @@ int main(int argc, char **argv)
         std::string curr_path = fs::current_path();
         fs::current_path(settings.job_dir);
         buffer.str("");
-        buffer << "module load " << DEFAULT_TERACHEM_MODULE << " && terachem -i resp.in 1> resp.out 2> resp.err";
+        if (DEFAULT_TERACHEM_MODULE != "")
+        {
+            buffer << "module load "<<DEFAULT_TERACHEM_MODULE<<" && ";
+        }
+        buffer << "terachem -i resp.in 1> resp.out 2> resp.err";
         silent_shell(buffer.str().c_str());
         buffer.str("");
         fs::current_path(curr_path);
