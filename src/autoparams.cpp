@@ -609,7 +609,11 @@ void Check_For_Missing_Parameters(Settings settings, Molecule &mol)
 
     // Run tleap with tleap.in
     buffer.str("");
-    buffer << "module load " << DEFAULT_AMBER_MODULE << " && tleap -f tleap.in 1> tleap.out 2> tleap.err";
+    if (DEFAULT_AMBER_MODULE != "")
+    {
+        buffer << "module load " << DEFAULT_AMBER_MODULE << " && ";    
+    }
+    buffer << "tleap -f tleap.in 1> tleap.out 2> tleap.err";
     silent_shell(buffer.str().c_str());
     DeleteIfEmpty(settings.job_dir + "/tleap.err");
     buffer.str("");
