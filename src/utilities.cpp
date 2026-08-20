@@ -25,6 +25,28 @@ bool CheckProgramExists(std::string program)
     fs::remove("err");
     return 1;
 }
+
+bool CheckProgramExists(std::string program, std::string module)
+{
+	std::string cmd = "module load " + module + "; which " + program + " 1> out 2> err";
+	silent_shell(cmd.c_str());
+	if (fs::is_empty("out"))
+	{
+		fs::remove("out");
+		fs::remove("err");
+		return 0;
+	}
+	if (!fs::is_empty("err"))
+	{
+		fs::remove("out");
+		fs::remove("err");
+		return 0;
+	}
+	fs::remove("out");
+	fs::remove("err");
+	return 1;
+}
+
 std::string GetSystemResponse(const char* cmd)
     {
         std::array<char, 128> buffer;

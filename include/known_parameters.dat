@@ -4,8 +4,8 @@
 // Please be sure to adhere to the exact formatting shown for each section below.
 
 %BASIC_ATOM_TYPES
-//Format is two letters for the Amber Atom Type, then four spaces, followed by the AutoParams atom default type.
-//sp carbons
+// Format is two letters for the Amber Atom Type, then four spaces, followed by the AutoParams atom default type.
+// sp carbons
 CZ    C_sp 
 CY    C_sp 
 cg    C_sp 
@@ -214,8 +214,12 @@ pf    P
 px    P
 py    P
 
+// Silicon
+Si    Si
+
 //lone pairs
 EP    EP
+
 
 %ATOMIC_MASSES
 B  10.81
@@ -286,6 +290,7 @@ FE 55.00
 Se 78.96              
 SG 32.06         2.900
 N1 14.01         0.530
+Si 28.09
 
 %BOND_TYPES
 B -O   450.00     1.510
@@ -854,8 +859,11 @@ Cl          1.948   0.265
 Br          2.22    0.320   
 I           2.35    0.40    
 N1          1.8240  0.1700
+Si          2.1000  0.0860
 
 %DEFAULT_BOND_TYPES
+Si-C_sp2      450.00   1.890
+Si-C_sp3      450.00   1.890
 B_sp2-O_db    450.00   1.510
 B_sp2-O_sb    450.00   1.510
 B_sp2-C_sp2   340.00   1.630
@@ -1052,6 +1060,12 @@ EP-S-S                150.000      96.700
 //double bond oxygen centers
 C_sp2-O_db-EP         150.000     120.000
 EP-O_db-EP            150.000     120.000
+
+//silicon centers
+C_sp3-Si-C_sp3         50.000     109.500
+C_sp3-Si-C_sp2         50.000     109.500
+C_sp2-Si-C_sp2         50.000     109.500
+
 
 //defaults (unmatched groups)
 O_sb                  104.000     112.700
@@ -1361,6 +1375,14 @@ H-O_sb-B_sp3-C_sp3           1    8.0608        0.000        −0.101
 O_sb-B_sp3-C_sp3-H           1    0.5691        0.000         2.385
 O_sb-B_sp3-C_sp2-C_sp2       1   15.7206      170.366        −1.001
 C_sp3-O_sb-B_sp3-C_sp2       1    2.3743      114.599        −0.197
+H-C_sp3-Si-C_sp3             1    0.16          0.0             3.
+H-C_sp3-Si-C_sp2             1    0.16          0.0             3.
+C_sp2-C_sp2-Si-C_sp3         1    0.38        180.0            -3. 
+C_sp2-C_sp2-Si-C_sp3         1    1.15          0.0             1. 
+C_sp2-C_sp2-Si-C_sp3         1    0.38        180.0            -3. 
+C_sp2-C_sp2-Si-C_sp3         1    1.15          0.0             1. 
+C_sp2-C_sp2-Si-C_sp2         1    0.38        180.0            -3. 
+C_sp2-C_sp2-Si-C_sp2         1    1.15          0.0             1. 
 
 %DEFAULT_TORSION_TYPES
 

@@ -88,12 +88,16 @@ Atom::Atom(std::string line)
     yy = atof(line.substr(38,8).c_str());
     zz = atof(line.substr(46,8).c_str());
     element = trim_whitespace(line.substr(76,2));
+    std::string vdw_key = element;
+    std::transform(vdw_key.begin(), vdw_key.end(), vdw_key.begin(),::toupper);
     formal_charge = atoi(line.substr(78,2).c_str());
-    mass = AtomicMasses[element];
-    electron_counter = AtomicNumbers[element];
-    vdw_radius = vdWRadii[element]/100.0;
+    mass = AtomicMasses[vdw_key];
+    electron_counter = AtomicNumbers[vdw_key];
+    vdw_radius = vdWRadii[vdw_key]/100.0;
     bonded_to_elements = {};
     bonded_to_indexes = {};
+    std::cout << line << std::endl;
+    std::cout << "Has element " << element << " with vdw_radius: " << vdw_radius << std::endl;
 }
 
 Atom::~Atom()
@@ -143,8 +147,8 @@ std::string Atom::print_PDB_line()
     line << std::fixed << std::setprecision(3) << std::setw(8) << yy; // "  -1.813"; // y coordinate (8 digits, 3 decimals, includes - sign)
     line << std::fixed << std::setprecision(3) << std::setw(8) << zz; // "  -0.503"; // z coordinate (8 digits, 3 decimals, includes - sign)
     line << "  1.00  0.00         "; // whatever, don't care.
-    line << "  "; // formal atomic charge if any
-    line << std::setw(2) << std::left << element; // "P "; // element, left-justified
+    line << " "; // formal atomic charge if any
+    line << std::setw(2) << std::right << element; // " P"; // element, right-justified
     // line << std::setw(2) << std::left << formal_charge; // formal charge.
     // line << "  ";
     line << std::endl;

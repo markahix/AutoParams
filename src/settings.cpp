@@ -45,7 +45,7 @@ void Settings::Error(std::string error)
 void Settings::CheckPrograms()
 {
     Output("Locating External Programs...\n");
-    TC_EXISTS = CheckProgramExists("terachem");
+    TC_EXISTS = CheckProgramExists("terachem",DEFAULT_TERACHEM_MODULE);
     PSI4_EXISTS = CheckProgramExists("psi4");
     AIMNET_EXISTS = CheckProgramExists("aimnet2");
     TLEAP_EXISTS = CheckProgramExists("tleap");

@@ -28,6 +28,7 @@ bool CheckFileExists(std::string filename);
 
 // Check available tools on the system
 bool CheckProgramExists(std::string program);
+bool CheckProgramExists(std::string program, std::string module);
 
 // Internal utilities
 std::string trim_whitespace(const std::string& str, const std::string& whitespace = " \t");

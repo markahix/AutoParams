@@ -265,7 +265,7 @@ std::string Parameters::FindMissingMass(std::string atom_name)
         std::stringstream buffer;
         buffer.str("");
         buffer << std::setw(2) << std::left << atom_name << " MISSING INFORMATION\n";
-        return atom_name + buffer.str();
+        return buffer.str();
     }
     std::string result = atom_name + mass_library[atom_name] + "\n";
     return result;
