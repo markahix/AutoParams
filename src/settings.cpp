@@ -229,6 +229,7 @@ void Settings::parse_command_line(int argc,char **argv)
     buffer << "\n";
     Output(buffer.str());
     buffer.str("");
+    QuickParsePDB();
 }
 
 Settings::Settings()
@@ -241,4 +242,26 @@ Settings::Settings()
 Settings::~Settings()
 {
 
+}
+
+void Settings::QuickParsePDB()
+{
+    std::ifstream ifile(inputfile,std::ios::in);
+    std::string line;
+    while (getline(ifile,line))
+    {
+        if (line.find("DUMMY")!=std::string::npos)
+        {
+            dummy_atom_names.push_back(line.substr(12,4));
+        }
+        if (line.find("HEAD")!= std::string::npos)
+        {
+            head_atom_name = line.substr(12,4);
+        }
+        if (line.find("TAIL")!=std::string::npos)
+        {
+            tail_atom_name = line.substr(12,4);
+        }
+    }
+    ifile.close();
 }

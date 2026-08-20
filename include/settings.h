@@ -47,6 +47,8 @@ class Settings
         // Constructor/Destructor
         Settings();
         ~Settings();
+    private:
+        void QuickParsePDB();
 };
 
 #endif
