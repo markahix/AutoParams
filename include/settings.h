@@ -13,6 +13,10 @@ class Settings
         std::string mol2file;
         std::string frcmodfile;
 
+        // Environmental Flags
+        bool USE_MODULES;
+        bool CONTAINER_MODE;
+
         // Program Flags
         bool TC_EXISTS;
         bool PSI4_EXISTS;
@@ -45,7 +49,7 @@ class Settings
         void Error(std::string error);
 
         // Constructor/Destructor
-        Settings();
+        Settings(int argc, char **argv);
         ~Settings();
     private:
         void QuickParsePDB();

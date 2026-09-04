@@ -12,8 +12,8 @@ int main(int argc, char **argv)
     std::stringstream buffer;
 
     // Initialize program, figure out what is available for use.
-    Settings settings;
-    settings.parse_command_line(argc, argv);
+    Settings settings(argc, argv);
+    // settings.parse_command_line(argc, argv);
 
     // Load parameters library from known_parameters.dat in the include directory.
     Parameters params;

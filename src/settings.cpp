@@ -45,7 +45,15 @@ void Settings::Error(std::string error)
 void Settings::CheckPrograms()
 {
     Output("Locating External Programs...\n");
-    TC_EXISTS = CheckProgramExists("terachem",DEFAULT_TERACHEM_MODULE);
+    if ((USE_MODULES) && (DEFAULT_TERACHEM_MODULE != ""))
+    {
+        TC_EXISTS = CheckProgramExists("terachem", DEFAULT_TERACHEM_MODULE);
+    }
+    else
+    {
+        TC_EXISTS = CheckProgramExists("terachem");
+    }
+    
     PSI4_EXISTS = CheckProgramExists("psi4");
     AIMNET_EXISTS = CheckProgramExists("aimnet2");
     TLEAP_EXISTS = CheckProgramExists("tleap");
@@ -109,6 +117,9 @@ void Settings::parse_command_line(int argc,char **argv)
     tail_atom_name = "0";
     dummy_atom_names = {};
     tc_keys = {};
+    // Environmental Flags
+    USE_MODULES = false;
+    CONTAINER_MODE = false;
 
 
     /*
@@ -193,6 +204,11 @@ void Settings::parse_command_line(int argc,char **argv)
             std::string val = argv[i+2];
             tc_keys[key] = val;
         }
+        if ((std::string)argv[i] == "--container" )
+        {
+            CONTAINER_MODE=true;
+            USE_MODULES=false;
+        }
 
 
                 
@@ -232,9 +248,11 @@ void Settings::parse_command_line(int argc,char **argv)
     QuickParsePDB();
 }
 
-Settings::Settings()
+Settings::Settings(int argc, char **argv)
 {
+    
     SetUpLogFiles();
+    parse_command_line(argc, argv);
     CheckPrograms();
     return;
 }
@@ -252,15 +270,15 @@ void Settings::QuickParsePDB()
     {
         if (line.find("DUMMY")!=std::string::npos)
         {
-            dummy_atom_names.push_back(line.substr(12,4));
+            dummy_atom_names.push_back(trim_whitespace(line.substr(12,4)));
         }
         if (line.find("HEAD")!= std::string::npos)
         {
-            head_atom_name = line.substr(12,4);
+            head_atom_name = trim_whitespace(line.substr(12,4));
         }
         if (line.find("TAIL")!=std::string::npos)
         {
-            tail_atom_name = line.substr(12,4);
+            tail_atom_name = trim_whitespace(line.substr(12,4));
         }
     }
     ifile.close();
