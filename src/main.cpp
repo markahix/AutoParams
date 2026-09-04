@@ -111,7 +111,7 @@ int main(int argc, char **argv)
         std::string curr_path = fs::current_path();
         fs::current_path(settings.job_dir);
         buffer.str("");
-        if (DEFAULT_TERACHEM_MODULE != "")
+        if (DEFAULT_TERACHEM_MODULE != "" && settings.USE_MODULES)
         {
             buffer << "module load "<<DEFAULT_TERACHEM_MODULE<<" && ";
         }

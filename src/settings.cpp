@@ -60,7 +60,7 @@ void Settings::CheckPrograms()
     PARMED_EXISTS = CheckProgramExists("parmed");
     CPPTRAJ_EXISTS = CheckProgramExists("cpptraj");
     ANTECHAMBER_EXISTS = CheckProgramExists("antechamber");
-
+    
     if (TC_EXISTS) { Output("TeraChem located."); }
     if (PSI4_EXISTS) { Output("Psi4 located."); }
     if (AIMNET_EXISTS) { Output("AimNET2 located."); }
@@ -118,7 +118,7 @@ void Settings::parse_command_line(int argc,char **argv)
     dummy_atom_names = {};
     tc_keys = {};
     // Environmental Flags
-    USE_MODULES = false;
+    USE_MODULES = CheckProgramExists("module");
     CONTAINER_MODE = false;
 
 

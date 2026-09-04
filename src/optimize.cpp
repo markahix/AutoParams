@@ -90,7 +90,12 @@ void TeraChemOpt(Settings settings)
 
     // Run TeraChem Optimizer
     buffer.str("");
-    buffer << "module load " << DEFAULT_TERACHEM_MODULE << " && terachem -i opt.in 1> opt.out 2> opt.err";
+    if (DEFAULT_TERACHEM_MODULE != "" && settings.USE_MODULES)
+    {
+        buffer << "module load " << DEFAULT_TERACHEM_MODULE << " && ";
+    }
+    buffer << "terachem -i opt.in 1> opt.out 2> opt.err";
+    
     silent_shell(buffer.str().c_str());
     buffer.str("");
 

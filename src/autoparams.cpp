@@ -609,7 +609,7 @@ void Check_For_Missing_Parameters(Settings settings, Molecule &mol)
 
     // Run tleap with tleap.in
     buffer.str("");
-    if (DEFAULT_AMBER_MODULE != "")
+    if (DEFAULT_AMBER_MODULE != "" && settings.USE_MODULES)
     {
         buffer << "module load " << DEFAULT_AMBER_MODULE << " && ";    
     }
