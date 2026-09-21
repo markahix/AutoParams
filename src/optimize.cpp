@@ -36,7 +36,7 @@ void TeraChemOpt(Settings settings)
         {"maxit","200"},
         {"scf","diis+a"},
         {"gpus","1"},
-        {"gpumem","256"},
+        //{"gpumem","256"},
         {"scrdir","scr/"},
         {"run","energy"},
         {"resp","yes"}};
