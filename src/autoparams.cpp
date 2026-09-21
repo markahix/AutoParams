@@ -34,7 +34,7 @@ void write_TC_resp_input(Settings settings, Molecule mol)
         {"maxit","200"},
         {"scf","diis+a"},
         {"gpus","1"},
-        {"gpumem","256"},
+       // {"gpumem","256"},
         {"scrdir","scr/"},
         {"run","energy"},
         {"resp","yes"}};
