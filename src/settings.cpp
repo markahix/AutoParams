@@ -45,13 +45,11 @@ void Settings::Error(std::string error)
 void Settings::CheckPrograms()
 {
     Output("Locating External Programs...\n");
-    if ((USE_MODULES) && (DEFAULT_TERACHEM_MODULE != ""))
+    TC_EXISTS = CheckProgramExists("terachem");
+
+    if ((!TC_EXISTS) && (USE_MODULES) && (DEFAULT_TERACHEM_MODULE != ""))
     {
         TC_EXISTS = CheckProgramExists("terachem", DEFAULT_TERACHEM_MODULE);
-    }
-    else
-    {
-        TC_EXISTS = CheckProgramExists("terachem");
     }
     
     PSI4_EXISTS = CheckProgramExists("psi4");
