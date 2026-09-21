@@ -250,7 +250,6 @@ void Settings::parse_command_line(int argc,char **argv)
 
 Settings::Settings(int argc, char **argv)
 {
-    
     SetUpLogFiles();
     parse_command_line(argc, argv);
     CheckPrograms();
