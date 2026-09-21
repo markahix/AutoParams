@@ -819,6 +819,67 @@ void Check_For_Missing_Parameters(Settings settings, Molecule &mol)
     return;
 }
 
+bool Charges_Are_Degenerate(const Molecule &mol, size_t &n_near_zero, size_t &n_atoms)
+{
+    // Purpose: detect the "the RESP/charge step silently never ran" failure
+    // mode -- every atom's resp_charge left at its default-constructed value
+    // (observed in practice as either an exact 0.0, when parse_TC_resp_
+    // output() never found a charges section to parse at all, or as a
+    // denormalized ~1e-138-magnitude value, when it's left uninitialized --
+    // both are "not a real RESP charge" for the same underlying reason: the
+    // RESP job never started -- e.g. TeraChem isn't on PATH -- or its output
+    // file never appeared/parsed).
+    //
+    // 2026-09-05, corrected per user review of the first version of this
+    // check: that version summed std::fabs() of every atom's charge and
+    // compared the SUM to a threshold. The user correctly flagged that this
+    // conflates two different questions -- "is the molecule's net charge
+    // zero" (a legitimate, common case: most solvents are neutral) vs. "did
+    // every individual atom come back with a real charge" (the actual
+    // failure being detected). Summing absolute values does avoid the worse
+    // version of that mistake (net/signed-sum cancellation hiding a real
+    // failure, or a genuinely neutral molecule's real charges being mistaken
+    // for the failure), but an aggregate sum can still be fooled the other
+    // direction: a handful of atoms with real, correctly-parsed charges
+    // (e.g. only the first N atoms in a truncated/partial RESP output, per
+    // parse_TC_resp_output(mol, settings, false)'s "unrestrained charges"
+    // fallback path) can push the SUM comfortably above any reasonable
+    // threshold even while every remaining atom is silently still at its
+    // degenerate default -- exactly the "some atoms genuinely non-trivial,
+    // rest silently broken" case the user described as needing to NOT be
+    // conflated with "some atoms genuinely, correctly zero, rest non-zero"
+    // (a normal, fine outcome for e.g. a symmetric/nonpolar atom).
+    //
+    // So this now checks PER ATOM, not in aggregate: an atom counts as
+    // "near zero" if |charge| is below ATOM_EPS (1e-6 -- well above the
+    // ~1e-138 magnitude of the observed uninitialized-value failure, and
+    // well below the smallest genuine RESP partial charge one would ever
+    // trust, which is on the order of 1e-2 to 1e-3 at the very smallest).
+    // The molecule is reported degenerate only if EVERY atom is near zero --
+    // matching the user's own framing exactly: "the issue is when *all* the
+    // atoms come back with effectively the same [near-]zero partial charge.
+    // If individual atoms genuinely have zero partial charge, but others
+    // have non-trivial ... charges, that is a reasonable outcome." A
+    // molecule where some atoms are near zero and others are not is never
+    // flagged here, regardless of its net/formal charge -- this check makes
+    // no assumption about (and never compares against) mol_charge at all.
+    //
+    // Inputs: mol - the fully atom-typed/charged molecule (called after
+    // AtomTyping()/BuildMol2File(), i.e. as late as possible so this reflects
+    // exactly what got written to disk).
+    // Returns/Outputs: n_near_zero/n_atoms - filled in for the caller to log
+    // (e.g. "11 of 11 atoms near zero"); return value - true only if
+    // n_near_zero == n_atoms (and n_atoms > 0).
+    const double ATOM_EPS = 1e-6;
+    n_near_zero = 0;
+    n_atoms = mol.atoms.size();
+    for (const Atom &atom : mol.atoms)
+    {
+        if (std::fabs(atom.resp_charge) < ATOM_EPS) n_near_zero++;
+    }
+    return n_atoms > 0 && n_near_zero == n_atoms;
+}
+
 void Build_Frcmod(Frcmod_File &frcmod, Molecule mol, Settings settings, Parameters params)
 {
     // process molecule's missing masses

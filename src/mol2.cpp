@@ -497,7 +497,7 @@ void Mol2File::AddAtom(std::string atomname, double x, double y, double z, std::
     buffer << std::setw(2) << std::left << atomtype << " ";
     buffer << "         1 ";
     buffer << std::setw(4) << std::left << resname << " ";
-    buffer << std::setw(14) << std::setprecision(6) << std::right << respcharge << std::endl;
+    buffer << std::fixed << std::setw(14) << std::setprecision(6) << std::right << respcharge << std::endl;
     atoms += buffer.str();
 }
 

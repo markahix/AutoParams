@@ -11,7 +11,7 @@ OBJ := $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 CPPFLAGS := -Iinclude -MMD -MP
 CFLAGS   := -Wall
-LDFLAGS  := -Llib
+LDFLAGS  := -Llib -static
 LDLIBS   := -lm -lstdc++fs
 
 .PHONY: all clean install

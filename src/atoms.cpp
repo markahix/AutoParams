@@ -88,6 +88,10 @@ Atom::Atom(std::string line)
     yy = atof(line.substr(38,8).c_str());
     zz = atof(line.substr(46,8).c_str());
     element = trim_whitespace(line.substr(76,2));
+    if (element == "CL")
+    {
+        element = "Cl";  //handing TeraChem's stupid Cl/CL bug which stems from ignoring PDB standards.
+    }
     std::string vdw_key = element;
     std::transform(vdw_key.begin(), vdw_key.end(), vdw_key.begin(),::toupper);
     formal_charge = atoi(line.substr(78,2).c_str());

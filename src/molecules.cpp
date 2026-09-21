@@ -228,7 +228,7 @@ void Molecule::FindBonds()
             double z2 = atoms[j].zz;
             double vdw_2 = atoms[j].vdw_radius;
             double dist = sqrt( pow(x2 - x1, 2) + pow(y2 - y1, 2) + pow(z2 - z1, 2) );
-            double vdw_dist = (vdw_2 + vdw_1)/2; //average of vdw radii?
+            double vdw_dist = ((vdw_2 + vdw_1)/2)*1.05; //average of vdw radii + scaling buffer to capture C-Cl bond lengths in CHCl3
             if (dist < vdw_dist)
             {
                 // based on VDW radii distances, 
