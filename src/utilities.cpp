@@ -1,50 +1,36 @@
 #include "utilities.h"
+#include <cstdlib>
+#include <unistd.h>   // access()
 /*
     System Interaction Functions
     1. bool CheckProgramExists(std::string program)
     2. std::string GetSystemResponse(const char* cmd)
     3. void silent_shell(const char* cmd)
 */
+// 2026-09-28: both checks used to run `which <prog> 1> out 2> err` in the
+// current directory and then delete ./out and ./err -- destroying any files
+// of the user's with those names. The plain check is now a direct PATH
+// search (same answer as `which`, no shell, no files); the module variant
+// captures `which` output through a pipe instead of scratch files.
 bool CheckProgramExists(std::string program)
 {
-    std::string cmd = "which " + program + " 1> out 2> err";
-    silent_shell(cmd.c_str());
-    if (fs::is_empty("out"))
+    const char *path_env = std::getenv("PATH");
+    if (path_env == nullptr || program.empty()) return false;
+    std::stringstream path(path_env);
+    std::string dir;
+    while (std::getline(path, dir, ':'))
     {
-        fs::remove("out");
-        fs::remove("err");
-        return 0;
+        fs::path candidate = fs::path(dir.empty() ? "." : dir) / program;
+        std::error_code ec;
+        if (fs::is_regular_file(candidate, ec) && access(candidate.c_str(), X_OK) == 0) return true;
     }
-    if (!fs::is_empty("err"))
-    {
-        fs::remove("out");
-        fs::remove("err");
-        return 0;
-    }
-    fs::remove("out");
-    fs::remove("err");
-    return 1;
+    return false;
 }
 
 bool CheckProgramExists(std::string program, std::string module)
 {
-	std::string cmd = "module load " + module + "; which " + program + " 1> out 2> err";
-	silent_shell(cmd.c_str());
-	if (fs::is_empty("out"))
-	{
-		fs::remove("out");
-		fs::remove("err");
-		return 0;
-	}
-	if (!fs::is_empty("err"))
-	{
-		fs::remove("out");
-		fs::remove("err");
-		return 0;
-	}
-	fs::remove("out");
-	fs::remove("err");
-	return 1;
+    std::string cmd = "module load " + module + " >/dev/null 2>&1; which " + program + " 2>/dev/null";
+    return !trim_whitespace(GetSystemResponse(cmd.c_str()), " \t\r\n").empty();
 }
 
 std::string GetSystemResponse(const char* cmd)

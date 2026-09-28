@@ -1,19 +1,49 @@
 #include "parameters.h"
 
+namespace
+{
+    // Directory holding the running autoparams binary, symlinks resolved.
+    // /proc/self/exe is authoritative on Linux: it works whether autoparams
+    // was found on PATH, run by absolute/relative path, or reached through a
+    // symlink. (The previous `which autoparams` lookup returned the first
+    // PATH match -- or nothing when the binary was run by path without being
+    // on PATH, in which case the current directory's parent was searched --
+    // and never resolved symlinks.) `which` is kept only as a fallback for
+    // systems without /proc.
+    fs::path executable_dir()
+    {
+        std::error_code ec;
+        fs::path exe = fs::read_symlink("/proc/self/exe", ec);
+        if (!ec && !exe.empty()) return exe.parent_path();
+
+        std::string which = trim_whitespace(GetSystemResponse("which autoparams 2>/dev/null"), " \t\r\n");
+        if (which.empty()) return fs::path();
+        fs::path p = fs::canonical(fs::absolute(which), ec);
+        if (ec) return fs::path();
+        return p.parent_path();
+    }
+
+    [[noreturn]] void parameter_file_error(const std::string &what, const std::string &path)
+    {
+        std::cerr << "ERROR: " << what << ": " << path << "\n"
+                  << "AutoParams reads known_parameters.dat from <install>/include/, next to\n"
+                  << "<install>/bin/autoparams. Run the binary from its build tree (or from a\n"
+                  << "copy of the whole tree, bin/ and include/ together)." << std::endl;
+        std::exit(1);
+    }
+}
+
 Parameters::Parameters()
 {
-    // find known parameters file (should be in the include folder)
-    std::string exec_folder;
-    exec_folder = GetSystemResponse("which autoparams");
-    fs::path p = fs::absolute(exec_folder);
-    known_params_file = p.parent_path().parent_path() /= "include/known_parameters.dat";
+    // find known parameters file (<install>/bin/autoparams -> <install>/include/)
+    fs::path exe_dir = executable_dir();
+    known_params_file = (exe_dir.parent_path() / "include" / "known_parameters.dat").string();
     std::cout << "Loading known parameters from " << known_params_file << std::endl;
-    
-    if (!fs::exists(known_params_file))
+
+    if (exe_dir.empty() || !fs::exists(known_params_file))
     {
-        // If the file cannot be opened, terminate the program (kinda useless otherwise).
-        std::cout << "Unable to locate parameter file! Terminating job." << std::endl;
-        exit(0);
+        // Terminate: nothing downstream is meaningful without the library.
+        parameter_file_error("parameter library not found", known_params_file);
     }
 
     // Open and verify the file
@@ -21,9 +51,7 @@ Parameters::Parameters()
     infile.open(known_params_file,std::ios::in);
     if ( ! infile.is_open())
     {
-        // If the file cannot be opened, terminate the program (kinda useless otherwise).
-        std::cout << "Unable to load parameter file! Terminating job." << std::endl;
-        exit(0);
+        parameter_file_error("parameter library could not be opened", known_params_file);
     }
     infile.close();
     base_atom_types = {};
@@ -48,18 +76,14 @@ void Parameters::InitializeParameterLibrary()
 
     if (!fs::exists(known_params_file))
     {
-        // If the file cannot be opened, terminate the program (kinda useless otherwise).
-        std::cout << "Unable to locate parameter file!" << std::endl;
-        exit(0);
+        parameter_file_error("parameter library not found", known_params_file);
     }
     // Open the file (closed below)
     infile.open(known_params_file,std::ios::in);
 
     if ( ! infile.is_open())
     {
-         // If the file cannot be opened, terminate the program (kinda useless otherwise).
-        std::cout << "Unable to load parameter file!" << std::endl;
-        exit(0);
+        parameter_file_error("parameter library could not be opened", known_params_file);
     }
 
     // Parse the file line-by-line.

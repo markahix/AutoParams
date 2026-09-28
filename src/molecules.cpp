@@ -9,7 +9,7 @@ void CleanPDB(Settings settings)
     std::string line;
     while (getline(pdbfile,line))
     {
-        if ((line.find("ATOM") == std::string::npos) && (line.find("HETATM") == std::string::npos))
+        if (!is_atom_record(line)) // record name in columns 1-6, not a substring anywhere
         {
             continue;
         }
@@ -77,7 +77,7 @@ Molecule::Molecule(Settings settings)
     // Parse PDB lines
     while (getline(pdbfile,line))
     {
-        if ((line.find("ATOM") == std::string::npos) && (line.find("HETATM") == std::string::npos))
+        if (!is_atom_record(line)) // record name in columns 1-6, not a substring anywhere
         {
             continue;
         }

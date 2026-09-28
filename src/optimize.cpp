@@ -22,7 +22,7 @@ bool TCJobSuccess()
     return false;
 }
 
-void TeraChemOpt(Settings settings)
+bool TeraChemOpt(Settings settings, Molecule &mol)
 {
     std::map<std::string,std::string> tc_keywords={  
         {"coordinates",settings.inputfile},
@@ -84,6 +84,17 @@ void TeraChemOpt(Settings settings)
     // buffer << ""<<std::endl;
     // buffer << ""<<std::endl;
     // buffer << ""<<std::endl;
+    // 2026-09-28: the optimization now runs inside the job directory on the
+    // job-directory copy (settings.inputfile there is the centred structure
+    // main() just wrote), and its result is read back into `mol`. It used to
+    // run in the caller's current directory on the original input, then
+    // overwrite that input with the optimized geometry -- after the
+    // job-directory copy used for the RESP fit, the mol2 coordinates and the
+    // tleap test had already been written, so the optimized geometry was
+    // never used for the parameters (the intent, per main.cpp, was always
+    // "copy optimized structure to original filename in job_dir").
+    std::string curr_path = fs::current_path();
+    fs::current_path(settings.job_dir);
     std::ofstream of("opt.in",std::ios::out);
     of << buffer.str();
     of.close();
@@ -103,37 +114,48 @@ void TeraChemOpt(Settings settings)
     if (!TCJobSuccess())
     {
         settings.Output("Optimization FAILED.  Continuing with original structure.");
-        return;
+        fs::current_path(curr_path);
+        return false;
     }
 
-    // Backup originally submitted pdb.
-    buffer.str("");
-    buffer << "mv " << settings.inputfile << " Original_PDB.backup; ";
-    silent_shell(buffer.str().c_str());
-
-    // Copy final PDB results to original file location.
+    // Read the last MODEL of scr/optim.pdb (same atom order as the input).
     std::ifstream optim_pdb("scr/optim.pdb",std::ios::in);
+    std::vector<std::array<double,3>> xyz;
     std::string line;
-    buffer.str("");
     while (getline(optim_pdb,line))
     {
-        if (line.find("MODEL")!= std::string::npos )
+        if (line.compare(0, 5, "MODEL") == 0)
         {
-            buffer.str("");
+            xyz.clear();
         }
-        else if (line.find("ENDMDL")!= std::string::npos )
+        else if (is_atom_record(line) && line.size() >= 54)
         {
-            continue;
-        }
-        else
-        {
-            buffer << line << std::endl;
+            xyz.push_back({atof(line.substr(30,8).c_str()),
+                           atof(line.substr(38,8).c_str()),
+                           atof(line.substr(46,8).c_str())});
         }
     }
     optim_pdb.close();
-    silent_shell("rm -r scr/ opt.in opt.out opt.err");
-    std::ofstream orig_pdb(settings.inputfile,std::ios::out);
-    orig_pdb << buffer.str();
-    orig_pdb.close();
-    return;
+    if (xyz.size() != mol.atoms.size())
+    {
+        std::stringstream msg;
+        msg << "Optimization finished, but scr/optim.pdb has " << xyz.size() << " atoms (expected "
+            << mol.atoms.size() << ").  Continuing with original structure.";
+        settings.Error(msg.str());
+        settings.Output(msg.str());
+        fs::current_path(curr_path);
+        return false;
+    }
+    for (size_t i = 0; i < xyz.size(); i++)
+    {
+        mol.atoms[i].xx = xyz[i][0];
+        mol.atoms[i].yy = xyz[i][1];
+        mol.atoms[i].zz = xyz[i][2];
+    }
+    // opt.in/opt.out/opt.err stay in the job directory as the record of the
+    // optimization; only TeraChem's scratch directory is removed.
+    silent_shell("rm -rf scr/");
+    fs::current_path(curr_path);
+    settings.Output("Optimization finished.  The optimized geometry is used for the RESP fit, the mol2 file and the tleap test.");
+    return true;
 }

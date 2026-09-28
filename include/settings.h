@@ -27,7 +27,8 @@ class Settings
         bool ANTECHAMBER_EXISTS;
 
         // Job Flags
-        bool OPTIMIZE_FIRST;
+        bool OPTIMIZE_REQUESTED;   // -o/--optimize given on the command line
+        bool OPTIMIZE_FIRST;       // ...and TeraChem is actually available (set after CheckPrograms())
         bool INCLUDE_TIMESTAMPS;
         bool USE_AM1BCC_CHARGES;
         
@@ -53,6 +54,11 @@ class Settings
         ~Settings();
     private:
         void QuickParsePDB();
+        void LogSettings();
 };
+
+// Full --help text (stdout). Printed by `autoparams --help` / `-h` before any
+// log file, job directory, or parameter-library lookup is touched.
+void PrintUsage(std::ostream &os);
 
 #endif

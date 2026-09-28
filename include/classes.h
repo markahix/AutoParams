@@ -33,6 +33,13 @@ class Atom
         std::string print_mol2_line();
 };
 
+// True if `element` (any case) is a real element symbol in the atom tables.
+bool is_known_element(const std::string &element);
+
+// True if `line` is a PDB atom record: "ATOM" or "HETATM" in columns 1-6.
+// (A substring search used to accept any line mentioning ATOM, e.g. REMARK.)
+bool is_atom_record(const std::string &line);
+
 class Bond
 {
     public:

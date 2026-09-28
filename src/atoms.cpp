@@ -78,8 +78,32 @@ std::map<std::string, int> vdWRadii = { {"H", 120 },{"HE", 140 },{"LI", 182 },{"
 {"RG", 0 },{"CN", 0 },{"NH", 0 },{"FL", 0 },{"MC", 0 },
 {"LV", 0 },{"TS", 0 },{"OG", 0 }, };
 
+bool is_atom_record(const std::string &line)
+{
+    return line.compare(0, 4, "ATOM") == 0 || line.compare(0, 6, "HETATM") == 0;
+}
+
+bool is_known_element(const std::string &element)
+{
+    std::string key = element;
+    std::transform(key.begin(), key.end(), key.begin(), ::toupper);
+    auto it = AtomicNumbers.find(key);
+    return it != AtomicNumbers.end() && it->second > 0;
+}
+
 Atom::Atom(std::string line)
 {
+    // Pad to a full 80-column record so every fixed-column read below is in
+    // range: a line that stops before column 80 used to throw
+    // std::out_of_range from substr() (the input is validated for a
+    // non-empty, known element symbol before any Atom is built -- see
+    // Settings::ValidateInputPDB()).
+    if (line.size() < 80) line.resize(80, ' ');
+    // Set by the RESP step (parse_TC_resp_output()); 0.0 until then. It used
+    // to be left uninitialized, so a run without TeraChem wrote whatever
+    // was in memory (typically ~1e-310, but not guaranteed) into the mol2.
+    resp_charge = 0.0;
+    atom_type = "";
     atom_name = trim_whitespace(line.substr(12,4));
     atom_number = atoi(line.substr(6,5).c_str());
     residue_name = line.substr(17,3);

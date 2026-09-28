@@ -123,7 +123,9 @@ void Frcmod_File::Write_Frcmod_File(Settings settings)
     }
     std::map<std::string,std::string> leaprc_dict={{"DNA","leaprc.DNA.OL15"},{"RNA","leaprc.RNA.OL3"},{"PROTEIN","leaprc.protein.ff14SB"},{"CARBOHYDRATE","leaprc.GLYCAM_06j-1"}};
     // Write title line
-    buffer << settings.frcmodfile.substr(settings.frcmodfile.find_last_of('/')+1,settings.frcmodfile.find_last_of('.') - settings.frcmodfile.find_last_of('/')-1) << ", use with " << leaprc_dict[settings.forcefield] << "." << std::endl;
+    buffer << settings.frcmodfile.substr(settings.frcmodfile.find_last_of('/')+1,settings.frcmodfile.find_last_of('.') - settings.frcmodfile.find_last_of('/')-1);
+    if (leaprc_dict.count(settings.forcefield)) buffer << ", use with " << leaprc_dict[settings.forcefield] << "." << std::endl;
+    else buffer << ", built without a base force field (--forcefield NONE)." << std::endl;
     frcmod_write << buffer.str();
     buffer.str("");
 

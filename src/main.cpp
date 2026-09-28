@@ -98,7 +98,14 @@ int main(int argc, char **argv)
         // confirm successful job completion, if failed, bail out?
         // copy optimized structure to original filename in job_dir.
         settings.Output("Running QM optimization before parametrizing.  This may take some time.");
-        TeraChemOpt(settings);
+        if (TeraChemOpt(settings, mol))
+        {
+            // Re-centre the optimized coordinates and replace the job-directory
+            // copy, which the RESP step and the tleap test read (2026-09-28;
+            // the optimized geometry used to be discarded -- see optimize.cpp).
+            mol.move_to_COM();
+            mol.Write_PDB(settings.job_dir, settings.inputfile);
+        }
     }
         
     if (!settings.USE_AM1BCC_CHARGES)

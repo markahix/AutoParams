@@ -30,7 +30,11 @@ $(BIN_DIR) $(OBJ_DIR):
 clean:
 	@$(RM) -rv $(BIN_DIR) $(OBJ_DIR)
 
-install: 
-	cp $(EXE) $(AGIMUS_BIN_DIR)
+# install: link (not copy) the binary into $(AGIMUS_BIN_DIR). autoparams finds
+# include/known_parameters.dat next to its own real location, so a copy on
+# its own cannot find the library; a symlink resolves back to this tree.
+install: $(EXE)
+	mkdir -p $(AGIMUS_BIN_DIR)
+	ln -sf $(abspath $(EXE)) $(AGIMUS_BIN_DIR)/autoparams
 
 -include $(OBJ:.o=.d)

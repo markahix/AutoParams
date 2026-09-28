@@ -525,7 +525,8 @@ void Check_For_Missing_Parameters(Settings settings, Molecule &mol)
     }
 
     // Write tleap.in file.
-    tleap_in << leaprc_dict[settings.forcefield] << std::endl;
+    // NONE (and its GAFF2 alias) sources no base force field.
+    if (leaprc_dict.count(settings.forcefield)) tleap_in << leaprc_dict[settings.forcefield] << std::endl;
     tleap_in << "source leaprc.water.tip3p" << std::endl;
     tleap_in << mol.res_name << " = loadmol2 " << settings.mol2file << std::endl;
     if (CheckFileExists(settings.frcmodfile))
