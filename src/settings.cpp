@@ -1,3 +1,5 @@
+#include <cctype>
+#include <map>
 #include "settings.h"
 #include "classes.h"   // is_atom_record(), is_known_element()
 
@@ -22,10 +24,9 @@ void PrintUsage(std::ostream &os)
 "\n"
 "Required:\n"
 "  -i, --input <file.pdb>     Input structure. Must be a file in the current\n"
-"                             working directory (a bare name or ./name).\n"
-"                             NOTE: the file is rewritten in place (atoms\n"
-"                             renumbered, HETATM written as ATOM, non-atom\n"
-"                             records dropped) -- keep a copy if you need one.\n"
+"                             working directory (a bare name or ./name). It\n"
+"                             is only read: the cleaned copy (atom records,\n"
+"                             renumbered) is autoparams.NNNN/<file.pdb>.\n"
 "\n"
 "Molecule:\n"
 "  -c, --charge <int>         Net formal charge. Default: 0.\n"
@@ -64,10 +65,6 @@ void PrintUsage(std::ostream &os)
 "                             changed. Defaults: method b3lyp, basis 6-31gss,\n"
 "                             convthre 1e-7, threall 1e-14, precision mixed,\n"
 "                             maxit 200, scf diis+a, gpus 1, gpumem 256.\n"
-"      --am1bcc               Request AM1-BCC charges instead of RESP.\n"
-"                             KNOWN GAP: no AM1-BCC charge source is wired in\n"
-"                             yet; such a run ends with all-zero charges and\n"
-"                             exit status 1.\n"
 "\n"
 "Environment:\n"
 "      --container            Running inside the AGIMUS container: never try\n"
@@ -79,7 +76,9 @@ void PrintUsage(std::ostream &os)
 "  autoparams.NNNN.err        Error log (created only if an error is logged).\n"
 "  autoparams.NNNN/           Job directory: <name>.mol2 and <name>.frcmod\n"
 "                             (the parameters), plus resp.in/resp.out,\n"
-"                             tleap.in, leap.log, tmp.prmtop/tmp.rst7.\n"
+"                             tleap.in, leap.log, tmp.prmtop/tmp.rst7, and\n"
+"                             citation.txt (how to cite AutoParams,\n"
+"                             TeraChem and RESP).\n"
 "\n"
 "External programs: terachem (RESP charges, --optimize) and tleap (test build)\n"
 "on PATH. Outside --container mode, `module load` of the TeraChem module\n"
@@ -88,7 +87,10 @@ void PrintUsage(std::ostream &os)
 "<install>/bin/autoparams (symlinks to the binary are resolved).\n"
 "\n"
 "Exit status: 0 on success; 1 on a usage error, a missing input or parameter\n"
-"file, a failed tleap test build, or all-zero partial charges.\n"
+"file, a failed tleap test build, or all-zero partial charges. An\n"
+"unrecognized flag, a stray word, a missing or empty value, \"--flag=value\",\n"
+"a flag given twice with different values, or a malformed number is a usage\n"
+"error.\n"
 "\n"
 "Under AGIMUS:\n"
 "  overseer --add-task --series-id <id> --module AutoParams \\\n"
@@ -108,14 +110,14 @@ namespace
 {
     [[noreturn]] void usage_error(const std::string &msg)
     {
-        std::cerr << "ERROR: " << msg << "\n"
-                  << "Run 'autoparams --help' for usage." << std::endl;
+        std::cerr << "ERROR: " << msg << std::endl;
         std::exit(1);
     }
 
     bool parse_int(const std::string &s, int &out)
     {
-        if (s.empty()) return false;
+        // The whole word, no leading blanks (strtol skipped them)
+        if (s.empty() || std::isspace(static_cast<unsigned char>(s[0]))) return false;
         errno = 0;
         char *end = nullptr;
         long v = std::strtol(s.c_str(), &end, 10);
@@ -220,25 +222,25 @@ void Settings::CheckPrograms()
     Output("Locating External Programs...\n");
     TC_EXISTS = CheckProgramExists("terachem");
 
-    if ((!TC_EXISTS) && (USE_MODULES) && (DEFAULT_TERACHEM_MODULE != ""))
+    if ((!TC_EXISTS) && (USE_MODULES) && (!std::string(DEFAULT_TERACHEM_MODULE).empty()))
     {
         TC_EXISTS = CheckProgramExists("terachem", DEFAULT_TERACHEM_MODULE);
     }
 
-    PSI4_EXISTS = CheckProgramExists("psi4");
-    AIMNET_EXISTS = CheckProgramExists("aimnet2");
+    // PSI4_EXISTS = CheckProgramExists("psi4");
+    // AIMNET_EXISTS = CheckProgramExists("aimnet2");
     TLEAP_EXISTS = CheckProgramExists("tleap");
-    PARMED_EXISTS = CheckProgramExists("parmed");
-    CPPTRAJ_EXISTS = CheckProgramExists("cpptraj");
-    ANTECHAMBER_EXISTS = CheckProgramExists("antechamber");
+    // PARMED_EXISTS = CheckProgramExists("parmed");
+    // CPPTRAJ_EXISTS = CheckProgramExists("cpptraj");
+    // ANTECHAMBER_EXISTS = CheckProgramExists("antechamber");
 
     if (TC_EXISTS) { Output("TeraChem located."); }
-    if (PSI4_EXISTS) { Output("Psi4 located."); }
-    if (AIMNET_EXISTS) { Output("AimNET2 located."); }
+    // if (PSI4_EXISTS) { Output("Psi4 located."); }
+    // if (AIMNET_EXISTS) { Output("AimNET2 located."); }
     if (TLEAP_EXISTS) { Output("Tleap located."); }
-    if (PARMED_EXISTS) { Output("Parmed located."); }
-    if (CPPTRAJ_EXISTS) { Output("CPPTRAJ located."); }
-    if (ANTECHAMBER_EXISTS) { Output("Antechamber located."); }
+    // if (PARMED_EXISTS) { Output("Parmed located."); }
+    // if (CPPTRAJ_EXISTS) { Output("CPPTRAJ located."); }
+    // if (ANTECHAMBER_EXISTS) { Output("Antechamber located."); }
     Output("\n");
 }
 
@@ -286,7 +288,6 @@ void Settings::parse_command_line(int argc,char **argv)
     OPTIMIZE_REQUESTED = false;
     OPTIMIZE_FIRST = false;
     INCLUDE_TIMESTAMPS = false;
-    USE_AM1BCC_CHARGES = false;
     head_atom_name = "0";
     tail_atom_name = "0";
     dummy_atom_names = {};
@@ -314,42 +315,51 @@ void Settings::parse_command_line(int argc,char **argv)
         {
             usage_error(flag + " requires a value.");
         }
+        if (args[i + 1].empty()) usage_error(flag + " requires a non-empty value."); // 2026-09-29
         return args[++i];
     };
+    // 2026-09-29: a single-valued flag given twice with different values is
+    // an error (before: the last one won). Short and long forms are one flag;
+    // the message uses the long name.
+    std::map<std::string, std::string> seen;
+    auto once = [&](const std::string &long_name, const std::string &value) {
+        auto it = seen.find(long_name);
+        if (it != seen.end() && it->second != value)
+            usage_error(long_name + " was given more than once with different values ('" + it->second +
+                        "' and '" + value + "').");
+        seen[long_name] = value;
+    };
+    std::string spin_text, forcefield_text; // range/name checks after the loop
 
     for (size_t i = 0; i < args.size(); i++)
     {
         const std::string &a = args[i];
+        if (a.size() > 2 && a[0] == '-' && a[1] == '-' && a.find('=') != std::string::npos)
+        {
+            usage_error("'" + a + "': '=' is not accepted; separate a flag from its value with a space. "
+                        "Use --help for usage."); // 2026-09-29
+        }
         if (a == "-i" || a == "--input")
         {
             inputfile = value_of(i, a);
+            once("--input", inputfile);
         }
         else if (a == "-c" || a == "--charge")
         {
             std::string v = value_of(i, a);
             if (!parse_int(v, mol_charge)) usage_error(a + " must be an integer (got '" + v + "').");
+            once("--charge", v);
         }
         else if (a == "-s" || a == "--spin")
         {
-            std::string v = value_of(i, a);
-            if (!parse_int(v, mol_spin)) usage_error(a + " must be an integer (got '" + v + "').");
-            if (mol_spin < 1) usage_error(a + ": spin multiplicity must be >= 1 (got " + v + ").");
+            spin_text = value_of(i, a);
+            if (!parse_int(spin_text, mol_spin)) usage_error(a + " must be an integer (got '" + spin_text + "').");
+            once("--spin", spin_text);
         }
         else if (a == "-f" || a == "--forcefield")
         {
-            std::string given = value_of(i, a);
-            forcefield = given;
-            transform(forcefield.begin(), forcefield.end(), forcefield.begin(),::toupper);
-            // GAFF2 is what Overseer passed before 2026-09-28. It was never a
-            // name this tool knew -- it simply matched no leaprc, which is
-            // exactly NONE's behaviour -- so it is kept as an alias.
-            if (forcefield == "GAFF2") forcefield = "NONE";
-            static const std::set<std::string> KNOWN = {"PROTEIN", "DNA", "RNA", "CARBOHYDRATE", "NONE"};
-            if (KNOWN.find(forcefield) == KNOWN.end())
-            {
-                usage_error(a + ": unknown force field '" + given +
-                            "'. Use PROTEIN, DNA, RNA, CARBOHYDRATE, or NONE (GAFF2 is accepted as NONE).");
-            }
+            forcefield_text = value_of(i, a);
+            once("--forcefield", forcefield_text);
         }
         else if (a == "-o" || a == "--optimize")
         {
@@ -358,18 +368,16 @@ void Settings::parse_command_line(int argc,char **argv)
         else if (a == "--head")
         {
             head_atom_name = value_of(i, a);
+            once("--head", head_atom_name);
         }
         else if (a == "-t" || a == "--tail")
         {
             tail_atom_name = value_of(i, a);
+            once("--tail", tail_atom_name);
         }
         else if (a == "-d" || a == "--dummy")
         {
             dummy_atom_names.push_back(value_of(i, a));
-        }
-        else if (a == "--am1bcc")
-        {
-            USE_AM1BCC_CHARGES = true;
         }
         else if (a == "--tckw")
         {
@@ -394,6 +402,10 @@ void Settings::parse_command_line(int argc,char **argv)
             }
             if (key.empty() || val.empty())
                 usage_error("--tckw requires a keyword and a value: --tckw KEY VALUE or --tckw KEY=VALUE (got '" + kv + "').");
+            auto prev = tc_keys.find(key);
+            if (prev != tc_keys.end() && prev->second != val)
+                usage_error("--tckw " + key + " was given more than once with different values ('" + prev->second +
+                            "' and '" + val + "')."); // 2026-09-29 (before: the last one won)
             tc_keys[key] = val;
         }
         else if (a == "--container")
@@ -402,18 +414,40 @@ void Settings::parse_command_line(int argc,char **argv)
         }
         else
         {
+            // 2026-09-29: the suite's wording (before: "Unknown option '...'").
+            if (!looks_like_option(a)) usage_error("unexpected argument '" + a + "'. Use --help for usage.");
             std::string hint;
             // "--i", "--c", ... : a short flag written with two dashes (the
             // shape an Overseer "--param c=1" used to produce).
             if (a.size() == 3 && a[0] == '-' && a[1] == '-' && std::isalpha(static_cast<unsigned char>(a[2])))
                 hint = " (short options take one dash, e.g. -" + a.substr(2) + ")";
-            usage_error("Unknown option '" + a + "'" + hint + ".");
+            usage_error("unrecognized flag '" + a + "'" + hint + ". Use --help for usage.");
+        }
+    }
+
+    // What the values mean -- after the whole line has been read (2026-09-29;
+    // these used to be checked as each flag was read, before a later typo).
+    if (!spin_text.empty() && mol_spin < 1)
+        usage_error("--spin: spin multiplicity must be >= 1 (got " + spin_text + ").");
+    if (!forcefield_text.empty())
+    {
+        forcefield = forcefield_text;
+        transform(forcefield.begin(), forcefield.end(), forcefield.begin(),::toupper);
+        // GAFF2 is what Overseer passed before 2026-09-28. It was never a
+        // name this tool knew -- it simply matched no leaprc, which is
+        // exactly NONE's behaviour -- so it is kept as an alias.
+        if (forcefield == "GAFF2") forcefield = "NONE";
+        static const std::set<std::string> KNOWN = {"PROTEIN", "DNA", "RNA", "CARBOHYDRATE", "NONE"};
+        if (KNOWN.find(forcefield) == KNOWN.end())
+        {
+            usage_error("--forcefield: unknown force field '" + forcefield_text +
+                        "'. Use PROTEIN, DNA, RNA, CARBOHYDRATE, or NONE (GAFF2 is accepted as NONE).");
         }
     }
 
     if (inputfile.empty())
     {
-        usage_error("an input structure is required: -i/--input <file.pdb>.");
+        usage_error("an input structure is required: -i/--input <file.pdb>. Use --help for usage.");
     }
     if (!fs::exists(inputfile))
     {

@@ -30,7 +30,6 @@ class Settings
         bool OPTIMIZE_REQUESTED;   // -o/--optimize given on the command line
         bool OPTIMIZE_FIRST;       // ...and TeraChem is actually available (set after CheckPrograms())
         bool INCLUDE_TIMESTAMPS;
-        bool USE_AM1BCC_CHARGES;
         
         // Molecule Information;
         int mol_charge;

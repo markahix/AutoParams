@@ -43,16 +43,26 @@ A=( "$BIN" )
 run_case "--help prints usage, exit 0, no files"   0 'Usage:' - 1 -- "${A[@]}" --help
 run_case "-h prints usage, exit 0, no files"       0 'Usage:' - 1 -- "${A[@]}" -h
 run_case "--help wins over other args"            0 'Usage:' - 1 -- "${A[@]}" -i nonexist.pdb --bogus --help
-for f in --input --charge --spin --forcefield --optimize --head --tail --dummy --am1bcc --tckw --container --help; do
+for f in --input --charge --spin --forcefield --optimize --head --tail --dummy --tckw --container --help; do
     run_case "--help documents $f"                0 "$f" - 1 -- "${A[@]}" --help
 done
+run_case "--help documents citation.txt"          0 'citation\.txt' - 1 -- "${A[@]}" --help
 run_case "no args -> exit 1, names --input"        1 - '--input' 1 -- "${A[@]}"
 run_case "missing input value"                     1 - 'requires a value' 1 -- "${A[@]}" --input
 run_case "missing charge value (next is flag)"     1 - 'requires a value' 1 -- "${A[@]}" -i methanol.pdb -c --spin 1
 run_case "nonexistent input"                       1 - 'not found' 1 -- "${A[@]}" -i nonexist.pdb
-run_case "unknown long option"                     1 - "Unknown option '--bogus'" 1 -- "${A[@]}" -i methanol.pdb --bogus
-run_case "Overseer-style --i is rejected w/ hint"  1 - "Unknown option '--i'.*-i" 1 -- "${A[@]}" --i methanol.pdb
-run_case "stray positional rejected"               1 - "Unknown option 'extra'" 1 -- "${A[@]}" -i methanol.pdb extra
+run_case "unknown long option"                     1 - "unrecognized flag '--bogus'" 1 -- "${A[@]}" -i methanol.pdb --bogus
+run_case "unknown single-dash option"              1 - "unrecognized flag '-x'" 1 -- "${A[@]}" -i methanol.pdb -x
+run_case "Overseer-style --i is rejected w/ hint"  1 - "unrecognized flag '--i'.*-i" 1 -- "${A[@]}" --i methanol.pdb
+run_case "--am1bcc is gone (2026-09-29)"            1 - "unrecognized flag '--am1bcc'" 1 -- "${A[@]}" -i methanol.pdb --am1bcc
+run_case "stray positional rejected"               1 - "unexpected argument 'extra'" 1 -- "${A[@]}" -i methanol.pdb extra
+run_case "--flag=value rejected"                   1 - "'=' is not accepted" 1 -- "${A[@]}" --input=methanol.pdb
+run_case "empty value rejected"                    1 - 'requires a non-empty value' 1 -- "${A[@]}" -i ""
+run_case "flag twice, different values"            1 - 'given more than once with different values' 1 -- "${A[@]}" -i methanol.pdb -c 0 --charge 1
+run_case "same value twice is fine (gets past parsing)" 1 - 'not found' 1 -- "${A[@]}" -i nonexist.pdb --input nonexist.pdb
+run_case "--tckw key twice, different values"     1 - "--tckw basis was given more than once" 1 -- "${A[@]}" -i methanol.pdb --tckw basis 6-31g --tckw basis=sto-3g
+run_case "charge with a leading blank"             1 - 'integer' 1 -- "${A[@]}" -i methanol.pdb -c " 1"
+run_case "typo reported before a meaning error"    1 - "unrecognized flag '--bogus'" 1 -- "${A[@]}" -i methanol.pdb -s 0 --bogus
 run_case "non-integer charge"                      1 - 'integer' 1 -- "${A[@]}" -i methanol.pdb -c abc
 run_case "spin 0 rejected"                         1 - 'spin' 1 -- "${A[@]}" -i methanol.pdb -s 0
 run_case "--tckw needs KEY VALUE"                  1 - 'tckw' 1 -- "${A[@]}" -i methanol.pdb --tckw method
@@ -67,7 +77,7 @@ d=$(mktemp -d -p "$SCR"); cp "$PDB_SRC" "$d/"
 if [[ -f "$d/autoparams.0000.out" && -d "$d/autoparams.0000" ]] \
    && grep -q 'Molecular charge:  -1' "$d/autoparams.0000.out" \
    && grep -q 'Molecular spin:    2' "$d/autoparams.0000.out" \
-   && ! grep -q 'Unknown option\|requires a value' "$d/.e"; then pass "valid args (-c -1, ./input, both --tckw forms) start a run"
+   && ! grep -q 'unrecognized flag\|requires a value' "$d/.e"; then pass "valid args (-c -1, ./input, both --tckw forms) start a run"
 else fail "valid args (-c -1, ./input, both --tckw forms) start a run" "$(head -c 300 "$d/.e" | tr '\n' '|')"; fi
 # A second run in the same directory must keep its log absolute (all lines in
 # autoparams.0001.out, none leaked into autoparams.0001/ by the chdir).
@@ -75,6 +85,26 @@ else fail "valid args (-c -1, ./input, both --tckw forms) start a run" "$(head -
 if grep -q 'Validating non-connecting molecule' "$d/autoparams.0001.out" 2>/dev/null \
    && ! ls "$d/autoparams.0001/autoparams."* >/dev/null 2>&1; then pass "second run logs stay in autoparams.0001.out"
 else fail "second run logs stay in autoparams.0001.out" "$(ls "$d" "$d/autoparams.0001" 2>&1 | tr '\n' ' ')"; fi
+
+# citation.txt (2026-09-30): every run that gets past argument handling writes
+# autoparams.NNNN/citation.txt (AutoParams, the TeraChem papers, RESP) and ends
+# its stdout and its .out log with a pointer to it; usage errors write none
+# (checked by the no-files cases above).
+cit="$d/autoparams.0000/citation.txt"; why=""
+[[ -f "$cit" ]] || why+="no autoparams.0000/citation.txt "
+for doi in 10.1021/acs.jcim.3c01049 10.1021/ct700268q 10.1021/ct800526s 10.1021/ct9003004 \
+           10.1002/wcms.1494 10.1021/j100142a004; do
+    grep -qF "doi:$doi" "$cit" 2>/dev/null || why+="lacks $doi "
+done
+[[ "$(tail -n 1 "$d/.o")" == "Citation details: see autoparams.0000/citation.txt" ]] || why+="stdout last line: $(tail -n 1 "$d/.o") "
+[[ "$(tail -n 1 "$d/autoparams.0000.out")" == "Citation details: see autoparams.0000/citation.txt" ]] || why+=".out last line: $(tail -n 1 "$d/autoparams.0000.out") "
+[[ -f "$d/citation.txt" ]] && why+="citation.txt also in the current directory "
+if [[ -z "$why" ]]; then pass "run writes autoparams.0000/citation.txt and points to it last"
+else fail "run writes autoparams.0000/citation.txt and points to it last" "$why"; fi
+if [[ -f "$d/autoparams.0001/citation.txt" ]] \
+   && [[ "$(tail -n 1 "$d/autoparams.0001.out")" == "Citation details: see autoparams.0001/citation.txt" ]]; then
+    pass "second run's citation note names autoparams.0001"
+else fail "second run's citation note names autoparams.0001" "$(tail -n 1 "$d/autoparams.0001.out" 2>&1)"; fi
 
 # Parameter-file lookup: via a symlink in an unrelated dir, not on PATH.
 L=$(mktemp -d -p "$SCR"); ln -s "$BIN" "$L/autoparams"
@@ -164,6 +194,17 @@ EOF
 if [[ "$ratio" == "1.10" ]] && ! ls "$d"/opt.in "$d"/Original_PDB.backup >/dev/null 2>&1 \
    && grep -q 'Optimization finished' "$d/autoparams.0000.out"; then pass "-o: optimized geometry used for the job-directory copy"
 else fail "-o: optimized geometry used for the job-directory copy" "ratio=$ratio $(ls "$d" | tr '\n' ' ')"; fi
+
+# --- the input is only read; scratch files stay in the job directory -----------
+# (2026-09-29: the cleaned copy used to be written over the input itself, and
+# the RESP step with dummy atoms left capped.pdb in the current directory.)
+d=$(mktemp -d -p "$SCR"); cp "$PDB_SRC" "$d/"
+( cd "$d" && PATH="$TC:$PATH" timeout 60 "$BIN" -i methanol.pdb -d HO >/dev/null 2>&1 )
+extra=$(cd "$d" && ls -A | grep -v -e '^methanol\.pdb$' -e '^autoparams\.0000' | tr '\n' ' ')
+if cmp -s "$PDB_SRC" "$d/methanol.pdb" && [[ -z "$extra" ]] && [[ -f "$d/autoparams.0000/capped.pdb" ]] \
+   && grep -q '^ATOM      6  HO' "$d/autoparams.0000/capped.pdb" \
+   && ! grep -q ' HO ' "$d/autoparams.0000/methanol.pdb"; then pass "input left unchanged; capped.pdb only in the job directory"
+else fail "input left unchanged; capped.pdb only in the job directory" "cmp=$(cmp "$PDB_SRC" "$d/methanol.pdb" 2>&1) extra=[$extra] $(ls "$d/autoparams.0000" | tr '\n' ' ')"; fi
 
 rm -rf "$SCR"
 echo "----"; echo "$((N-FAILS))/$N passed"

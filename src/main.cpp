@@ -5,6 +5,7 @@
 #include "parameters.h"
 #include "optimize.h"
 #include "mol2.h"
+#include "citation.h"
 
 int main(int argc, char **argv)
 {
@@ -13,7 +14,7 @@ int main(int argc, char **argv)
 
     // Initialize program, figure out what is available for use.
     Settings settings(argc, argv);
-    // settings.parse_command_line(argc, argv);
+    write_citation_file(settings);
 
     // Load parameters library from known_parameters.dat in the include directory.
     Parameters params;
@@ -53,8 +54,7 @@ int main(int argc, char **argv)
     }
 
     settings.Output("Analyzing molecular structure...\n\n");
-    // identify all bonds
-    // by distance?
+    // identify all bonds by distance compared to sum of covalent bond radii of the atoms.
     mol.FindBonds();
     buffer.str("");
     buffer << "Found " << mol.bonds.size() << " bonds in molecule." << std::endl;
@@ -82,6 +82,9 @@ int main(int argc, char **argv)
     settings.Output(buffer.str());
    
     // identify all rings
+    // 4-member:  torsions with end-points also found as bonds.
+    // 5-member:  torsions with end-points also found as end-points of angles.
+    // 6-member:  torsions with end-points also found in other torsions with different middle atoms.
     mol.FindRings();
     buffer.str("");
     int total_rings = mol.four_rings.size() + mol.five_rings.size() + mol.six_rings.size();
@@ -108,89 +111,52 @@ int main(int argc, char **argv)
         }
     }
         
-    if (!settings.USE_AM1BCC_CHARGES)
+    // Check terachem actually exists on the path before attempting to call it.
+    if (!settings.TC_EXISTS)
     {
-        // 2026-09-05: fail loudly, right here, if TeraChem isn't even on
-        // PATH -- rather than shelling out to it anyway. silent_shell()
-        // never checks exit codes or command-not-found, so the old
-        // unconditional shell-out silently produced no resp.out at all;
-        // validate_TC_resp_output() then failed to open a file that was
-        // never written, parse_TC_resp_output(mol, settings, false) failed
-        // the exact same way and returned without setting a single charge,
-        // and every atom quietly kept its default-constructed 0.0 --
-        // producing a mol2 file full of zero partial charges with no
-        // diagnostic anywhere that survives the job directory being cleaned
-        // up. This is the incident the user reported: "all of the solvents
-        // returned with effectively 0-value partial charges ... those
-        // files are not available in any of the job directories". Logging
-        // it here means it lands in autoparams.NNNN.err *before* anything
-        // is attempted, and the Charges_Are_Degenerate() check below (plus
-        // Overseer's own mol2-parsing gate in --finish-autoparams-job) is
-        // the safety net that turns this into a real "error" status instead
-        // of a silently-cached bad result.
-        if (!settings.TC_EXISTS)
-        {
-            settings.Error("TeraChem not found on PATH -- cannot compute RESP charges. "
-                            "Install/license TeraChem and ensure it is on PATH, or rerun "
-                            "AutoParams with --am1bcc to request antechamber's AM1-BCC "
-                            "charge method instead. Continuing so the rest of this run's "
-                            "own diagnostics (bond/angle/dihedral/vdW checks) still execute, "
-                            "but the resulting charges will be all-zero and this job will "
-                            "be reported as failed below.");
-        }
-        else
-        {
-            // calculate RESP charges, apply results to atoms in molecule.
-            write_TC_resp_input(settings,mol);
-            buffer.str("");
-            buffer << "Running TeraChem for RESP charges.  This may take a while..." << std::endl;
-            settings.Output(buffer.str());
-            std::string curr_path = fs::current_path();
-            fs::current_path(settings.job_dir);
-            buffer.str("");
-            if (DEFAULT_TERACHEM_MODULE != "" && settings.USE_MODULES)
-            {
-                buffer << "module load "<<DEFAULT_TERACHEM_MODULE<<" && ";
-            }
-            buffer << "terachem -i resp.in 1> resp.out 2> resp.err";
-            silent_shell(buffer.str().c_str());
-            buffer.str("");
-            fs::current_path(curr_path);
-
-            // validate successful resp job before trying to parse output.
-            // If validation fails, there could be an issue with convergence, but the charges may still be useful.
-            // We will alert the end user and continue on.
-            if (!validate_TC_resp_output(settings))
-            {
-                settings.Output("RESP calculation did not complete successfully.  Attempting to continue with current charge values.");
-                // parse RESP charges
-                parse_TC_resp_output(mol, settings, false);
-            }
-            else
-            {
-                // parse RESP charges
-                parse_TC_resp_output(mol, settings, true);
-            }
-        }
+        settings.Error("TeraChem not found on PATH -- cannot compute RESP charges. "
+                        "Install/license TeraChem and ensure it is on PATH. "
+                        "Continuing so the rest of this run's "
+                        "own diagnostics (bond/angle/dihedral/vdW checks) still execute, "
+                        "but the resulting charges will be all-zero and this job will "
+                        "be reported as failed below.");
     }
     else
     {
-        // 2026-09-05: --am1bcc currently has nowhere to actually get a
-        // charge from -- Generate_Mol2_File()'s antechamber "-c bcc" branch
-        // (autoparams.cpp) is dead code, never called from here, and
-        // BuildMol2File() below reads straight from mol.atoms[i].resp_charge,
-        // which nothing in this branch ever sets. Flagging this explicitly
-        // rather than letting it fail silently and get caught only by the
-        // generic Charges_Are_Degenerate() check lower down with a less
-        // specific message. See README.md's Open design items.
-        settings.Error("--am1bcc was requested, but this build has no code path that actually "
-                        "assigns AM1-BCC charges to mol.atoms before the mol2 file is written "
-                        "(the antechamber \"-c bcc\" plumbing in Generate_Mol2_File() is not "
-                        "wired into main()'s control flow). Charges will be all-zero and this "
-                        "job will be reported as failed below -- see README.md's Open design "
-                        "items for AutoParams.");
+        // calculate RESP charges, apply results to atoms in molecule.
+        write_TC_resp_input(settings,mol);
+        buffer.str("");
+        buffer << "Running TeraChem for RESP charges.  This may take a while..." << std::endl;
+        settings.Output(buffer.str());
+        std::string curr_path = fs::current_path();
+        fs::current_path(settings.job_dir);
+        buffer.str("");
+        if (!std::string(DEFAULT_TERACHEM_MODULE).empty() && settings.USE_MODULES)
+        {
+            buffer << "module load "<<DEFAULT_TERACHEM_MODULE<<" && ";
+        }
+        buffer << "terachem -i resp.in 1> resp.out 2> resp.err";
+        silent_shell(buffer.str().c_str());
+        buffer.str("");
+        fs::current_path(curr_path);
+
+        // validate successful resp job before trying to parse output.
+        // If validation fails, there could be an issue with convergence, but the charges may still be useful.
+        // We will alert the end user and continue on.
+        if (!validate_TC_resp_output(settings))
+        {
+            settings.Output("RESP calculation did not complete successfully.  Attempting to continue with current charge values.");
+            // parse RESP charges
+            parse_TC_resp_output(mol, settings, false);
+        }
+        else
+        {
+            // parse RESP charges
+            parse_TC_resp_output(mol, settings, true);
+        }
     }
-    // ************************* Here's where I can put in my molecule atom-typer code...
+
+    // Obtain atom types from structure and bond orders.
     AtomTyping(mol);
     
     for (Atom atom : mol.atoms)
@@ -199,20 +165,9 @@ int main(int argc, char **argv)
     }
     // Generate mol2 file
     BuildMol2File(settings, mol);
-    // Generate_Mol2_File(settings);
-    // if (!settings.USE_AM1BCC_CHARGES)
-    // {
-    //     std::cout << "Adding charges to mol2." << std::endl;
-    //     Add_Charges_To_Mol2(settings, mol);
-    // }
 
-    // 2026-09-05: sanity-check the charges that just got written to disk --
-    // see Charges_Are_Degenerate()'s own comment (autoparams.cpp) for the
-    // full rationale, including a same-day correction from an aggregate-sum
-    // check to a strict per-atom "every single atom near zero" check. Checked
-    // here, right after BuildMol2File(), so it reflects exactly what's in
-    // settings.mol2file; charges_degenerate gates the final success/failure
-    // report and exit code below.
+    // Sanity-check the charges that just got written to disk.
+    // Make sure a failed TeraChem RESP calculation didn't just return garbage "zeroes".
     size_t n_near_zero = 0, n_charge_atoms = 0;
     bool charges_degenerate = Charges_Are_Degenerate(mol, n_near_zero, n_charge_atoms);
     if (charges_degenerate)
@@ -224,7 +179,7 @@ int main(int argc, char **argv)
         settings.Error("Every one of this molecule's " + std::to_string(n_charge_atoms) +
                        " atoms came back with an effectively-zero partial charge (|charge| < 1e-6). "
                        "See the messages above for the likely cause (TeraChem unavailable, the RESP "
-                       "job failing to complete, or --am1bcc having no charge source wired up). " +
+                       "job failing to complete). " +
                        settings.mol2file + " was written but should NOT be trusted or cached -- "
                        "rerun after fixing the charge source.");
     }

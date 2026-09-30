@@ -36,7 +36,7 @@ bool TeraChemOpt(Settings settings, Molecule &mol)
         {"maxit","200"},
         {"scf","diis+a"},
         {"gpus","1"},
-        //{"gpumem","256"},
+        {"gpumem","256"},
         {"scrdir","scr/"},
         {"run","energy"},
         {"resp","yes"}};
@@ -101,7 +101,7 @@ bool TeraChemOpt(Settings settings, Molecule &mol)
 
     // Run TeraChem Optimizer
     buffer.str("");
-    if (DEFAULT_TERACHEM_MODULE != "" && settings.USE_MODULES)
+    if (!std::string(DEFAULT_TERACHEM_MODULE).empty() && settings.USE_MODULES)
     {
         buffer << "module load " << DEFAULT_TERACHEM_MODULE << " && ";
     }

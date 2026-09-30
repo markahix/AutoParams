@@ -6,11 +6,17 @@ void write_TC_resp_input(Settings settings, Molecule mol)
     std::stringstream buffer;
     if (settings.dummy_atom_names.size() > 0)
     {
-        std::string line;
-        buffer.str("");
-        buffer << "cp " << settings.inputfile << " capped.pdb";
-        silent_shell(buffer.str().c_str());
-        
+        // Keep the structure with its capping (dummy) atoms as capped.pdb,
+        // then write the RESP coordinates without them. 2026-09-29:
+        // capped.pdb is written into the job directory (it was a "cp" of the
+        // input into the current directory, left behind after every run with
+        // dummy atoms); it is a copy of the job directory's cleaned, centred
+        // structure.
+        std::error_code ec;
+        fs::copy_file(settings.job_dir + settings.inputfile, settings.job_dir + "capped.pdb",
+                      fs::copy_options::overwrite_existing, ec);
+        if (ec) settings.Error("could not write " + settings.job_dir + "capped.pdb: " + ec.message());
+
         std::ofstream outfile(settings.job_dir + settings.inputfile);
         for (Atom atom : mol.atoms)
         {   if (find(settings.dummy_atom_names.begin(),settings.dummy_atom_names.end(),atom.atom_name)  != settings.dummy_atom_names.end())
@@ -34,7 +40,7 @@ void write_TC_resp_input(Settings settings, Molecule mol)
         {"maxit","200"},
         {"scf","diis+a"},
         {"gpus","1"},
-       // {"gpumem","256"},
+        {"gpumem","256"},
         {"scrdir","scr/"},
         {"run","energy"},
         {"resp","yes"}};
@@ -200,32 +206,6 @@ void BuildMol2File(Settings settings, Molecule mol)
 
 
 
-void Generate_Mol2_File(Settings settings)
-{
-    std::stringstream buffer;
-    std::string curr_path = fs::current_path();
-    fs::current_path(settings.job_dir);
-    if (fs::exists("../capped.pdb"))
-    {
-        buffer.str("");
-        buffer << "cp ../capped.pdb " << settings.inputfile;
-        silent_shell(buffer.str().c_str());
-    }
-    // run antechamber
-    buffer.str("");
-    buffer << "antechamber -i " << settings.inputfile << " -fi pdb -at amber -o tmp.mol2 -fo mol2 -nc " << settings.mol_charge;
-    if (!settings.USE_AM1BCC_CHARGES)
-    {
-        buffer << " -c bcc ";
-    }
-    buffer << " -pf y 1> antechamber.log 2> antechamber.err";
-
-    silent_shell(buffer.str().c_str());
-    DeleteIfEmpty(settings.job_dir + "/antechamber.err");
-    Validate_Mol2_File(settings);
-    fs::current_path(curr_path);
-    return;
-}
 
 void RemoveDummyFromMol2(std::string mol2_file, std::string dummy_name)
 {
@@ -610,7 +590,7 @@ void Check_For_Missing_Parameters(Settings settings, Molecule &mol)
 
     // Run tleap with tleap.in
     buffer.str("");
-    if (DEFAULT_AMBER_MODULE != "" && settings.USE_MODULES)
+    if (!std::string(DEFAULT_AMBER_MODULE).empty() && settings.USE_MODULES)
     {
         buffer << "module load " << DEFAULT_AMBER_MODULE << " && ";    
     }

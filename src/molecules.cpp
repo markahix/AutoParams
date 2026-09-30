@@ -2,6 +2,12 @@
 
 void CleanPDB(Settings settings)
 {
+    // Reads the input PDB (current directory) and writes the cleaned copy --
+    // atom records only, HETATM written as ATOM, renumbered, dummy atoms
+    // last, END -- into the job directory under the same name.
+    // 2026-09-29: the cleaned copy used to be written over the input file
+    // itself, so a standalone run destroyed the user's PDB (REMARKs,
+    // HETATM records, numbering); the input is now only read.
     std::string filename = settings.inputfile;
     std::vector<std::string> atom_lines = {};
     std::vector<std::string> dummy_lines = {};
@@ -45,7 +51,7 @@ void CleanPDB(Settings settings)
         new_line << line.substr(11,line.size()-11);
         new_pdb_lines.push_back(new_line.str());
     }
-    std::ofstream cleaned_pdb(filename,std::ios::out);
+    std::ofstream cleaned_pdb(settings.job_dir + "/" + filename, std::ios::out);
     for (std::string line : new_pdb_lines)
     {
         cleaned_pdb << line << std::endl;
@@ -59,7 +65,8 @@ void CleanPDB(Settings settings)
 Molecule::Molecule(Settings settings)
 {
     CleanPDB(settings);
-    std::string filename = settings.inputfile;
+    std::string filename = settings.job_dir + "/" + settings.inputfile; // the cleaned copy
+
     int formal_charge = settings.mol_charge;
     int spin = settings.mol_spin;
     head_atom_name = settings.head_atom_name;
