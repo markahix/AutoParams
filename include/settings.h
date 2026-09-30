@@ -19,12 +19,12 @@ class Settings
 
         // Program Flags
         bool TC_EXISTS;
-        bool PSI4_EXISTS;
-        bool AIMNET_EXISTS;
+        // bool PSI4_EXISTS;
+        // bool AIMNET_EXISTS;
         bool TLEAP_EXISTS;
-        bool PARMED_EXISTS;
-        bool CPPTRAJ_EXISTS;
-        bool ANTECHAMBER_EXISTS;
+        // bool PARMED_EXISTS;
+        // bool CPPTRAJ_EXISTS;
+        // bool ANTECHAMBER_EXISTS;
 
         // Job Flags
         bool OPTIMIZE_REQUESTED;   // -o/--optimize given on the command line
