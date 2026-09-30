@@ -294,8 +294,8 @@ void Settings::parse_command_line(int argc,char **argv)
     tc_keys = {};
     CONTAINER_MODE = false;
     USE_MODULES = false;
-    TC_EXISTS = PSI4_EXISTS = AIMNET_EXISTS = TLEAP_EXISTS = false;
-    PARMED_EXISTS = CPPTRAJ_EXISTS = ANTECHAMBER_EXISTS = false;
+    TC_EXISTS = false;
+    TLEAP_EXISTS = false;
 
     std::vector<std::string> args(argv + 1, argv + argc);
 
