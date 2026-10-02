@@ -28,10 +28,20 @@ When that happens, `autoparams` now logs `AGIMUS_AUTOPARAMS_ZERO_CHARGES` to std
 
 The Overseer-side gate independently re-parses the produced `.mol2` file's charges with the same per-atom check before deciding whether to report the task `ok` and register its output into `library/parameters/`. 
 
+### Non-unique atom names
+
+When atom names in the input PDB repeat, AutoParams renames only the repeats, each to its element plus the lowest number no atom of the molecule uses (an atom whose name was unique keeps it). These new names are the ones the mol2 gives tleap, so it warns, on stderr and in `autoparams.NNNN.out`, listing every rename, for example:
+
+```
+WARNING: the input PDB's atom names are not unique; 2 atoms were renamed (atom 4 H1 -> H2, atom 5 H1 -> H3). The mol2 gives tleap the new names: check autoparams.0000/dup.pdb and make sure your molecule's atom names match it. dup.pdb now has the new names; the original is kept as dup_original.pdb.
+```
+
+The input is kept as `<stem>_original.pdb` (`_original_2.pdb`, … if that name is taken; nothing is overwritten), and the input is rewritten with only the renamed atoms' names changed. `AGIMUS_AUTOPARAMS_RENAMED_ATOMS renamed:<n> total_atoms:<m> original:<file>` on stdout tells Overseer, which then caches the renamed PDB in `library/parameters/` and says so in the task's message.
+
 ### Command Line
 
 Run `autoparams --help` (or `-h`) for the full usage text. 
 
 ### Generative AI Disclosure
 
-Generative AI was used for comments and documentation, however all actual code was written, validated, and tested by a human.
+Generative AI was used for comments and documentation, plus generation of the usage text, argument parser update, and unique atom name handling function update.

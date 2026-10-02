@@ -52,6 +52,14 @@ class Bond
 };
 
 
+// Where an atom of the cleaned copy is in the input PDB,
+// its line index, and its 1-based position among the input's atom records.
+struct InputPosition { size_t line_index; int ordinal; };
+
+// An atom whose non-unique input name was regenerated
+// (atom_index into Molecule::atoms).
+struct AtomRename { size_t atom_index; std::string old_name, new_name; };
+
 class Molecule
 {
 public:
@@ -63,6 +71,8 @@ public:
     std::string tail_atom_name;
     std::string res_name;
     std::vector <Atom> atoms;
+    std::vector <InputPosition> input_positions; // per atom, in atoms' order
+    std::vector <AtomRename> renames;            // empty when every input name was unique
     std::vector <std::vector<int>> bonds;
     std::vector <Bond> newbonds;
     std::vector <std::vector<int>> angles;
@@ -145,5 +155,12 @@ class Mol2File
         void AddAtom(std::string atomname,double x, double y, double z, std::string atomtype, std::string resname, double respcharge);
         void AddBond(int atom1, int atom2, int order);
 };
+
+// 2026-10-01: when atom names were regenerated, keep the input as
+// <stem>_original.pdb (or _original_2.pdb, ... -- never overwriting), write
+// the input again with only the renamed atoms' names changed, and warn the
+// user (stderr and the .out log) plus print AGIMUS_AUTOPARAMS_RENAMED_ATOMS
+// for Overseer. Does nothing when no atom was renamed.
+void keep_original_with_new_names(Settings &settings, const Molecule &mol);
 
 #endif

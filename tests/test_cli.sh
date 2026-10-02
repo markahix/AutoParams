@@ -206,6 +206,47 @@ if cmp -s "$PDB_SRC" "$d/methanol.pdb" && [[ -z "$extra" ]] && [[ -f "$d/autopar
    && ! grep -q ' HO ' "$d/autoparams.0000/methanol.pdb"; then pass "input left unchanged; capped.pdb only in the job directory"
 else fail "input left unchanged; capped.pdb only in the job directory" "cmp=$(cmp "$PDB_SRC" "$d/methanol.pdb" 2>&1) extra=[$extra] $(ls "$d/autoparams.0000" | tr '\n' ' ')"; fi
 
+# --- non-unique atom names (2026-10-01) -------------------------------------------
+# Only true duplicates are renamed (to the element plus the lowest number no atom
+# uses); the user is warned; the input is kept as <stem>_original.pdb and rewritten
+# with the new names (nothing else in it changes).
+dup_run() { # dup_run <dir> <pdb-edit>: writes <dir>/dup.pdb from methanol.pdb and runs autoparams on it
+    mkpdb "$1/dup.pdb" "$2"; cp "$1/dup.pdb" "$1/.orig"
+    ( cd "$1" && timeout 60 "$BIN" -i dup.pdb >"$1/.o" 2>"$1/.e" ); }
+names() { awk '/^(ATOM|HETATM)/{printf "%s ", substr($0,13,4)}' "$1" | tr -s ' '; }
+rn="L=[l.replace(' H2  MEO',' H1  MEO').replace(' H3  MEO',' H1  MEO') for l in L]"
+d=$(mktemp -d -p "$SCR"); dup_run "$d" "$rn"
+w="WARNING: the input PDB's atom names are not unique; 2 atoms were renamed (atom 4 H1 -> H2, atom 5 H1 -> H3). The mol2 gives tleap the new names: check autoparams.0000/dup.pdb and make sure your molecule's atom names match it. dup.pdb now has the new names; the original is kept as dup_original.pdb."
+if grep -qxF "$w" "$d/.e" && grep -qxF "$w" "$d/autoparams.0000.out"; then pass "duplicate names: the user is warned (stderr and .out)"
+else fail "duplicate names: the user is warned (stderr and .out)" "$(grep -i warn "$d/.e" | head -2)"; fi
+if grep -qx "AGIMUS_AUTOPARAMS_RENAMED_ATOMS renamed:2 total_atoms:6 original:dup_original.pdb" "$d/.o"; then pass "duplicate names: machine-readable line for Overseer"
+else fail "duplicate names: machine-readable line for Overseer" "$(grep AGIMUS "$d/.o")"; fi
+want=$(python3 - "$d/.orig" <<'PY'
+import sys
+L = open(sys.argv[1]).read().splitlines()
+for k, new in ((4, ' H2 '), (5, ' H3 ')):        # 4th and 5th atom records (lines 5 and 6)
+    L[k] = L[k][:12] + new + L[k][16:]
+print('\n'.join(L))
+PY
+)
+if cmp -s "$d/.orig" "$d/dup_original.pdb" && [[ "$(cat "$d/dup.pdb")" == "$want" ]]; then pass "duplicate names: original kept as dup_original.pdb, dup.pdb has only the names changed"
+else fail "duplicate names: original kept as dup_original.pdb, dup.pdb has only the names changed" "$(diff <(echo "$want") "$d/dup.pdb" | head -6 | tr '\n' '|')"; fi
+if [[ "$(names "$d/autoparams.0000/dup.pdb")" == " C1 O1 H1 H2 H3 HO " ]]; then pass "duplicate names: the job-directory PDB has the new names"
+else fail "duplicate names: the job-directory PDB has the new names" "$(names "$d/autoparams.0000/dup.pdb")"; fi
+d=$(mktemp -d -p "$SCR"); dup_run "$d" "L=[l.replace(' H2  MEO',' H1  MEO').replace(' H3  MEO',' H2  MEO') for l in L]"
+if [[ "$(names "$d/autoparams.0000/dup.pdb")" == " C1 O1 H1 H3 H2 HO " ]]; then
+    pass "only the duplicate is renamed, never an atom whose name was unique"
+else fail "only the duplicate is renamed, never an atom whose name was unique" "$(grep WARN "$d/.e") | $(names "$d/autoparams.0000/dup.pdb")"; fi
+if grep -qF "WARNING: the input PDB's atom names are not unique; 1 atom was renamed (atom 4 H1 -> H3)." "$d/.e"; then pass "one rename: singular wording"
+else fail "one rename: singular wording" "$(grep WARN "$d/.e")"; fi
+d=$(mktemp -d -p "$SCR"); echo keep > "$d/dup_original.pdb"; dup_run "$d" "$rn"
+if [[ "$(cat "$d/dup_original.pdb")" == keep ]] && cmp -s "$d/.orig" "$d/dup_original_2.pdb" && grep -qF "the original is kept as dup_original_2.pdb." "$d/.e"; then
+    pass "an existing dup_original.pdb is never overwritten"
+else fail "an existing dup_original.pdb is never overwritten" "$(ls "$d" | tr '\n' ' ') $(grep WARN "$d/.e")"; fi
+d=$(mktemp -d -p "$SCR"); cp "$PDB_SRC" "$d/"; ( cd "$d" && timeout 60 "$BIN" -i methanol.pdb >"$d/.o" 2>"$d/.e" )
+if ! grep -q 'WARNING\|RENAMED' "$d/.o" "$d/.e" && [[ ! -e "$d/methanol_original.pdb" ]] && cmp -s "$PDB_SRC" "$d/methanol.pdb"; then pass "unique names: no warning, no _original.pdb, input untouched"
+else fail "unique names: no warning, no _original.pdb, input untouched" "$(ls "$d" | tr '\n' ' ')"; fi
+
 rm -rf "$SCR"
 echo "----"; echo "$((N-FAILS))/$N passed"
 [[ $FAILS -eq 0 ]]

@@ -27,6 +27,7 @@ int main(int argc, char **argv)
     settings.Output("Reading PDB...");
     Molecule mol(settings);
     settings.Output("Checked PDB for unique atom names.");
+    keep_original_with_new_names(settings, mol); // Added to handle renames within AGIMUS workflows.
     settings.Output("Moving molecule to center of mass...");
 
     // move molecule to center of mass.

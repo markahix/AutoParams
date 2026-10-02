@@ -1,35 +1,40 @@
 #include "classes.h"
 
-void CleanPDB(Settings settings)
+std::vector<InputPosition> CleanPDB(Settings settings)
 {
     // Reads the input PDB (current directory) and writes the cleaned copy --
     // atom records only, HETATM written as ATOM, renumbered, dummy atoms
     // last, END -- into the job directory under the same name.
-    // 2026-09-29: the cleaned copy used to be written over the input file
-    // itself, so a standalone run destroyed the user's PDB (REMARKs,
-    // HETATM records, numbering); the input is now only read.
     std::string filename = settings.inputfile;
     std::vector<std::string> atom_lines = {};
     std::vector<std::string> dummy_lines = {};
+    std::vector<InputPosition> atom_positions = {};
+    std::vector<InputPosition> dummy_positions = {};
     std::ifstream pdbfile(filename,std::ios::in);
     std::string line;
-    while (getline(pdbfile,line))
+    size_t line_index = 0;
+    int ordinal = 0;
+    for (; getline(pdbfile,line); line_index++)
     {
         if (!is_atom_record(line)) // record name in columns 1-6, not a substring anywhere
         {
             continue;
         }
+        ordinal++;
         std::string atom_name = trim_whitespace(line.substr(12,4));
         if (find(settings.dummy_atom_names.begin(), settings.dummy_atom_names.end(), atom_name) != settings.dummy_atom_names.end())
         {
             dummy_lines.push_back(line);
+            dummy_positions.push_back({line_index, ordinal});
         }
         else
         {
             atom_lines.push_back(line);
+            atom_positions.push_back({line_index, ordinal});
         }
     }
     pdbfile.close();
+    atom_positions.insert(atom_positions.end(), dummy_positions.begin(), dummy_positions.end());
 
     int n_atoms=0;
     std::vector<std::string> new_pdb_lines = {};
@@ -58,13 +63,13 @@ void CleanPDB(Settings settings)
     }
     cleaned_pdb << "END" << std::endl;
     cleaned_pdb.close();
-
+    return atom_positions;
 }
 
 
 Molecule::Molecule(Settings settings)
 {
-    CleanPDB(settings);
+    input_positions = CleanPDB(settings);
     std::string filename = settings.job_dir + "/" + settings.inputfile; // the cleaned copy
 
     int formal_charge = settings.mol_charge;
@@ -74,6 +79,19 @@ Molecule::Molecule(Settings settings)
     
     std::vector<std::string> atom_name_set;
     std::vector<std::string> residue_name_set;
+    // A duplicate name is replaced by the element plus the lowest
+    // number that no atom uses -- neither an earlier atom's (possibly new)
+    // name nor any atom's name in the input -- so an atom whose input name
+    // was unique always keeps it. (Before, the new name only avoided earlier
+    // atoms, and could then collide with a later atom, which was renamed in
+    // turn.)
+    std::set<std::string> input_names;
+    {
+        std::ifstream names_in(settings.job_dir + "/" + settings.inputfile);
+        std::string name_line;
+        while (getline(names_in, name_line))
+            if (is_atom_record(name_line)) input_names.insert(trim_whitespace(name_line.substr(12, 4)));
+    }
     
     charge = formal_charge;
     spin_mult = spin;
@@ -95,15 +113,19 @@ Molecule::Molecule(Settings settings)
         {
             res_name = curr_atom.residue_name;
         }
-        while (std::find(atom_name_set.begin(),atom_name_set.end(),curr_atom.atom_name) != atom_name_set.end())
+        auto taken = [&](const std::string &name) {
+            return std::find(atom_name_set.begin(), atom_name_set.end(), name) != atom_name_set.end();
+        };
+        if (taken(curr_atom.atom_name))
         {
-            std::stringstream buffer;
+            const std::string old_name = curr_atom.atom_name;
             std::string newname;
-            buffer.str("");
-            buffer << curr_atom.element << name_counter;
-            name_counter++;
-            newname = trim_whitespace(buffer.str());
+            do
+            {
+                newname = trim_whitespace(curr_atom.element + std::to_string(name_counter++));
+            } while (taken(newname) || input_names.count(newname));
             curr_atom.set_atomname(newname);
+            renames.push_back({atoms.size(), old_name, newname});
         }
         curr_atom.residue_number = 1;
         curr_atom.residue_name = res_name;
@@ -114,7 +136,7 @@ Molecule::Molecule(Settings settings)
 
     n_atoms = atoms.size();
 
-    // check unique atom names
+    // more than one residue name: the whole molecule becomes LIG
     std::set<std::string> s(residue_name_set.begin(), residue_name_set.end());
     if (s.size() != 1)
     {
@@ -769,4 +791,70 @@ void Molecule::FindRings()
             }
         }
     }
+}
+void keep_original_with_new_names(Settings &settings, const Molecule &mol)
+{
+    // Purpose: (2026-10-01) tell the user that non-unique atom names were
+    //   regenerated, keep the input as <stem>_original.pdb, and write the
+    //   input again with the new names, so the user's PDB, the job-directory
+    //   copy and the mol2 (which gives tleap these names) agree.
+    // Steps:
+    //   1. Nothing to do when no atom was renamed.
+    //   2. Pick <stem>_original.pdb, or the first free _original_<k>.pdb.
+    //   3. Read the input, rename it to that name, and write the input again
+    //      with only the renamed atoms' name fields (columns 13-16) changed.
+    //   4. Warn on stderr and in the .out log; print the line Overseer reads.
+    if (mol.renames.empty()) return; // Step 1
+    const std::string input = settings.inputfile;
+    const std::string stem = input.substr(0, input.find_last_of('.'));
+    std::string original = stem + "_original.pdb"; // Step 2
+    for (int k = 2; fs::exists(original); k++) original = stem + "_original_" + std::to_string(k) + ".pdb";
+
+    std::vector<std::string> lines; // Step 3
+    {
+        std::ifstream in(input);
+        std::string line;
+        while (getline(in, line)) lines.push_back(line);
+    }
+    auto name_field = [](const std::string &name) {
+        if (name.size() >= 4) return name.substr(0, 4);
+        std::string field = " " + name;
+        field.resize(4, ' ');
+        return field;
+    };
+    std::string listed;
+    for (const auto &r : mol.renames)
+    {
+        const InputPosition &pos = mol.input_positions[r.atom_index];
+        std::string &line = lines[pos.line_index];
+        if (line.size() < 16) line.resize(16, ' ');
+        line.replace(12, 4, name_field(r.new_name));
+        listed += (listed.empty() ? "" : ", ") + std::string("atom ") + std::to_string(pos.ordinal) + " " + r.old_name + " -> " + r.new_name;
+    }
+    std::error_code ec;
+    fs::rename(input, original, ec);
+    std::string kept;
+    if (ec)
+    {
+        kept = input + " is unchanged (it could not be renamed to " + original + ": " + ec.message() + ").";
+    }
+    else
+    {
+        std::ofstream out(input, std::ios::out | std::ios::trunc);
+        for (const auto &line : lines) out << line << "\n";
+        kept = input + " now has the new names; the original is kept as " + original + ".";
+    }
+
+    std::string dir = settings.job_dir; // Step 4: "autoparams.NNNN", as in the citation note
+    while (!dir.empty() && dir.back() == '/') dir.pop_back();
+    dir = dir.substr(dir.find_last_of('/') + 1);
+    const size_t n = mol.renames.size();
+    std::string warning = "WARNING: the input PDB's atom names are not unique; " + std::to_string(n) +
+                          (n == 1 ? " atom was renamed (" : " atoms were renamed (") + listed +
+                          "). The mol2 gives tleap the new names: check " + dir + "/" + input +
+                          " and make sure your molecule's atom names match it. " + kept;
+    std::cerr << warning << std::endl;
+    settings.Output(warning);
+    std::cout << "AGIMUS_AUTOPARAMS_RENAMED_ATOMS renamed:" << n << " total_atoms:" << mol.atoms.size()
+              << " original:" << (ec ? std::string("none") : original) << std::endl;
 }
